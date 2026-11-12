@@ -8,7 +8,7 @@ import { rectsIntersect, snap, transformRect, unionRects, type Rect } from '@/do
 import { defaultProps, getBBox, getDef } from '@/library/registry';
 
 export type Tool = 'select' | 'wire' | 'pan';
-export type BottomTab = 'console' | 'problems' | 'netlist' | 'measure' | 'sim';
+export type BottomTab = 'console' | 'problems' | 'netlist' | 'measure' | 'sim' | 'analysis' | 'scope' | 'code' | 'serial';
 
 export interface LogEntry { id: number; t: number; level: 'info' | 'warn' | 'error' | 'ok'; msg: string }
 export interface Selection { comps: string[]; wires: string[]; junctions: string[] }

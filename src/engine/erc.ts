@@ -94,7 +94,7 @@ export function runERC(doc: CircuitDocument, nl: Netlist): Issue[] {
 
     // Polarised parts wired straight to a source
     const pPos = pins.find((p) => p.polarity === '+'), pNeg = pins.find((p) => p.polarity === '-');
-    if (pPos && pNeg && def.category !== 'power') {
+    if (pPos && pNeg && def.category !== 'power' && def.category !== 'instruments') {
       const np = net(inst.id, pPos.id), nn = net(inst.id, pNeg.id);
       if (np && nn && np !== nn) {
         if (srcNeg.has(np) && srcPos.has(nn)) {
@@ -113,6 +113,15 @@ export function runERC(doc: CircuitDocument, nl: Netlist): Issue[] {
         }
       }
     }
+  }
+  // Breadboard: wire joining two holes of the same internal strip does nothing
+  for (const w of Object.values(doc.wires)) {
+    if (w.from.kind !== 'pin' || w.to.kind !== 'pin' || w.from.compId !== w.to.compId) continue;
+    const inst = doc.components[w.from.compId];
+    const def = inst && getDef(inst.type);
+    if (!def?.substrate) continue;
+    const a = w.from.pinId, b = w.to.pinId;
+    if (getInternal(def, inst.props).some((g) => g.includes(a) && g.includes(b))) issues.push({ id: 'uselesswire-' + w.id, severity: 'info', title: 'Fio redundante na breadboard', message: 'Os furos ' + a + ' e ' + b + ' já estão ligados internamente (mesma tira); este fio não tem efeito.', compIds: [inst.id] });
   }
   const order = { error: 0, warning: 1, info: 2 };
   return issues.sort((a, b) => order[a.severity] - order[b.severity]);

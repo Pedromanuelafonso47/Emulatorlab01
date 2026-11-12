@@ -7,6 +7,8 @@ import { compRect } from '@/store/editor';
 import { canvasSize } from '@/editor/Canvas';
 import { useSim } from '@/store/sim';
 import { SimTab } from './SimTab';
+import { AnalysisTab } from './AnalysisTab';
+import { Brain } from 'lucide-react';
 import type { Issue } from '@/engine/erc';
 
 function useAllIssues(): Issue[] {
@@ -28,6 +30,7 @@ export function BottomPanel() {
     { id: 'netlist', label: 'Nós (netlist)', icon: <Network className="h-3.5 w-3.5" />, badge: <span className="ml-1 text-[10px] text-lab-400">{nl.meaningful.length}</span> },
     { id: 'measure', label: 'Medições', icon: <Gauge className="h-3.5 w-3.5" /> },
     { id: 'sim', label: 'Simulação', icon: <Activity className="h-3.5 w-3.5" /> },
+    { id: 'analysis', label: 'Análise', icon: <Brain className="h-3.5 w-3.5" /> },
   ];
   return (
     <div className="flex h-full flex-col">
@@ -45,8 +48,9 @@ export function BottomPanel() {
         {tab === 'console' && <ConsoleTab />}
         {tab === 'problems' && <ProblemsTab />}
         {tab === 'netlist' && <NetlistTab />}
-        {tab === 'measure' && <Placeholder title="Instrumentos de medição — Fase 3" text="Multímetro (V DC/AC, A, Ω, continuidade, díodo), voltímetro, amperímetro e wattímetro com pontas de prova colocadas no circuito. Enquanto isso, os valores calculados já estão disponíveis: passe o rato sobre um pino/furo, veja o separador “Simulação” ou o painel de propriedades do componente." />}
+        {tab === 'measure' && <MeasureTab />}
         {tab === 'sim' && <SimTab />}
+        {tab === 'analysis' && <AnalysisTab />}
       </div>
     </div>
   );
@@ -125,6 +129,25 @@ function NetlistTab() {
         ))}
       </tbody>
     </table>
+  );
+}
+
+function MeasureTab() {
+  const doc = useEditor((s) => s.doc);
+  const interp = useSim((s) => s.interp);
+  const running = useSim((s) => s.running);
+  const meters = Object.values(doc.components).filter((c) => getDef(c.type)?.category === 'instruments' && !getDef(c.type)?.comingSoon);
+  if (!meters.length) return <Placeholder title="Sem instrumentos no circuito" text="Arraste um multímetro, voltímetro, amperímetro ou wattímetro da categoria Instrumentos e ligue os seus terminais ao circuito com fios. O voltímetro liga-se em paralelo; o amperímetro em série." />;
+  return (
+    <div className="flex flex-wrap gap-2 p-3 font-sans">
+      {meters.map((m) => { const st = interp?.states[m.id]; return (
+        <button key={m.id} onClick={() => useEditor.getState().select({ comps: [m.id] })} className="min-w-[160px] rounded-lg border border-lab-700 bg-lab-850 px-3 py-2 text-left hover:border-accent">
+          <div className="text-[11px] text-lab-400">{m.label} · {getDef(m.type)!.name}</div>
+          <div className="font-mono text-[20px] font-bold text-amber-300">{running ? (st?.display as string) ?? '…' : '—'} <span className="text-[13px] text-lab-300">{running ? (st?.unit as string) ?? '' : ''}</span></div>
+          {!running && <div className="text-[11px] text-lab-500">inicie a simulação</div>}
+        </button>
+      ); })}
+    </div>
   );
 }
 

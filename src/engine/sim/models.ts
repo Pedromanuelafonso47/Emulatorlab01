@@ -331,6 +331,23 @@ export const MODELS: Record<string, Model> = {
     },
   },
 
+  // ── instruments ──
+  multimeter: {
+    status: 'implemented', note: 'V: 10 MΩ em paralelo. A: shunt 0,5 Ω (VΩmA) / 10 mΩ (10A). Ω/continuidade/díodo: fonte de teste de 1 mA (3 V em aberto).',
+    build: (c) => {
+      const mode = String(c.props.mode ?? 'dcv');
+      if (mode === 'dcv' || mode === 'acv') R(c, 'VOHM', 'COM', 10e6);
+      else if (mode === 'dca') { R(c, 'VOHM', 'COM', 0.5); R(c, 'A10', 'COM', 0.01); }
+      else {
+        c.add({ k: 'I', p: c.node('VOHM'), n: c.node('COM'), i: 1e-3, own: c.own('VOHM', 'COM') });
+        R(c, 'VOHM', 'COM', 3000);
+      }
+    },
+  },
+  voltmeter: { status: 'implemented', note: 'Resistência interna 10 MΩ.', build: (c) => R(c, '+', '-', 10e6) },
+  ammeter: { status: 'implemented', note: 'Shunt de 10 mΩ.', build: (c) => R(c, '+', '-', 0.01) },
+  wattmeter: { status: 'implemented', note: 'Shunt 10 mΩ (I+→I−) e 10 MΩ (V+–V−).', build: (c) => { R(c, 'I+', 'I-', 0.01); R(c, 'V+', 'V-', 10e6); } },
+
   // ── MCU boards (power rails only) ──
   'arduino-uno': { status: 'partial', note: MCU_NOTE, build: usbBoard([['5V', 5, 0.3], ['3.3V', 3.3, 1]]) },
   'arduino-mega': { status: 'partial', note: MCU_NOTE, build: usbBoard([['5V', 5, 0.3], ['3.3V', 3.3, 1]]) },

@@ -104,6 +104,24 @@ export const EXAMPLES: Example[] = [
     },
   },
   {
+    id: 'dmm-divider',
+    name: 'Medir com o multímetro',
+    description: 'Divisor de tensão 12 V (10 kΩ / 4,7 kΩ) com o multímetro em V⎓ a medir a tensão de saída. Mude a função do multímetro no painel de propriedades.',
+    build: () => {
+      const b = new Builder('Medir com o multímetro');
+      const ps = b.add('dc-supply', 'PS1', -100, 40, { voltage: 12 });
+      const r1 = b.add('resistor', 'R1', 40, -60, { resistance: 10000 }, 1);
+      const r2 = b.add('resistor', 'R2', 40, 20, { resistance: 4700 }, 1);
+      const m = b.add('multimeter', 'XMM1', 170, 90, { mode: 'dcv' });
+      b.wire([ps, '+'], [r1, '1'], '#e53935', [{ x: -110, y: -100 }, { x: 40, y: -100 }]);
+      b.wire([r1, '2'], [r2, '1'], '#fdd835');
+      b.wire([r2, '2'], [ps, '-'], '#212121', [{ x: 40, y: 70 }, { x: -90, y: 70 }]);
+      b.wire([m, 'VOHM'], [r2, '1'], '#e53935', [{ x: 190, y: -10 }, { x: 40, y: -10 }], 'jumper-mm');
+      b.wire([m, 'COM'], [r2, '2'], '#212121', [{ x: 170, y: 120 }, { x: 60, y: 120 }, { x: 60, y: 60 }], 'jumper-mm');
+      return b.doc;
+    },
+  },
+  {
     id: 'npn-button',
     name: 'Transístor NPN como interruptor (com botão)',
     description: 'Premir o botão injeta ≈0,8 mA na base (Rb = 10 kΩ); o 2N2222A satura e acende o LED. Inicie a simulação e prima o botão no laboratório.',

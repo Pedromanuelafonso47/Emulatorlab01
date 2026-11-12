@@ -12,6 +12,8 @@ export interface Compiled {
   hasSource: boolean;
   unsupported: { compId: string; note: string }[];
   elementOwner: (string | null)[];    // element index → compId
+  sourceOwners: string[];
+  hasSourceOtherThan: (compId: string) => boolean;
 }
 
 export function compile(doc: CircuitDocument, nl: Netlist, blown: Set<string> = new Set()): Compiled {
@@ -27,7 +29,8 @@ export function compile(doc: CircuitDocument, nl: Netlist, blown: Set<string> = 
   }
   const first = build(doc, nl, blown, groundNet);
   if (groundNet || first.circuit.nodeCount < 2) return first;
-  return build(doc, nl, blown, first.circuit.nodeNets[1]);
+  const firstReal = first.circuit.nodeNets.slice(1).find((n) => !n.startsWith('__'));
+  return firstReal ? build(doc, nl, blown, firstReal) : first;
 }
 
 function build(doc: CircuitDocument, nl: Netlist, blown: Set<string>, groundNet: string | null): Compiled {
@@ -45,6 +48,7 @@ function build(doc: CircuitDocument, nl: Netlist, blown: Set<string>, groundNet:
   const elementOwner: (string | null)[] = [];
   const unsupported: Compiled['unsupported'] = [];
   let hasSource = false;
+  const sourceOwners: string[] = [];
 
   for (const inst of Object.values(doc.components)) {
     const def = getDef(inst.type);
@@ -66,12 +70,12 @@ function build(doc: CircuitDocument, nl: Netlist, blown: Set<string>, groundNet:
       pinByName: (name) => pins.find((p) => p.name === name)?.id,
       internal: () => { nodeNets.push('__int' + nodeCount); return nodeCount++; },
       add: (e) => {
-        if (e.k === 'V' || e.k === 'I' || e.k === 'SUPPLY') hasSource = true;
+        if (e.k === 'V' || e.k === 'I' || e.k === 'SUPPLY') { hasSource = true; sourceOwners.push(inst.id); }
         elements.push(e); elementOwner.push(inst.id); return elements.length - 1;
       },
       own: (...p): Owner => ({ compId: inst.id, pins: p }),
     };
     model.build(ctx);
   }
-  return { circuit: { nodeCount, nodeNets, elements }, netNode, groundNet, hasSource, unsupported, elementOwner };
+  return { circuit: { nodeCount, nodeNets, elements }, netNode, groundNet, hasSource, unsupported, elementOwner, sourceOwners, hasSourceOtherThan: (id) => sourceOwners.some((o) => o !== id) };
 }

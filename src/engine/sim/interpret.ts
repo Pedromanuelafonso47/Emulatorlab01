@@ -26,9 +26,24 @@ export interface Interpretation {
 const V = (x: number) => formatSI(x, 'V');
 const A = (x: number) => formatSI(x, 'A');
 const W = (x: number) => formatSI(x, 'W');
+/** 4-digit auto-ranging display like a real DMM. */
+export function meterFmt(x: number, base: string): { display: string; unit: string } {
+  const a = Math.abs(x);
+  const ranges: [number, string][] = [[1e6, 'M'], [1e3, 'k'], [1, ''], [1e-3, 'm'], [1e-6, 'µ']];
+  let [f, p] = ranges[ranges.length - 1];
+  for (const r of ranges) if (a >= r[0] * 0.99995) { [f, p] = r; break; }
+  if (a < 1e-9) { f = base === 'Ω' ? 1 : 1e-3; p = base === 'Ω' ? '' : 'm'; }
+  const n = x / f;
+  const digits = Math.abs(n) >= 100 ? 1 : Math.abs(n) >= 10 ? 2 : 3;
+  return { display: n.toFixed(digits), unit: p + base };
+}
+
 const num = (v: unknown, d: number) => (typeof v === 'number' && isFinite(v) ? v : d);
 
-export function interpret(doc: CircuitDocument, nl: Netlist, cp: Compiled, res: SimResult): Interpretation {
+export interface InterpretExtras { acRms?: (compId: string, vNow: number | null) => number }
+
+export function interpret(doc: CircuitDocument, nl: Netlist, cp: Compiled, res: SimResult, extras: InterpretExtras = {}): Interpretation {
+  const acRms = extras.acRms ?? (() => 0);
   const issues: Issue[] = [];
   const netVoltage = new Map<string, number | null>();
   cp.netNode.forEach((node, net) => netVoltage.set(net, res.floating[node] ? null : res.voltages[node]));
@@ -166,6 +181,40 @@ export function interpret(doc: CircuitDocument, nl: Netlist, cp: Compiled, res: 
         const running = inst.type === 'fan' ? v > vn * 0.4 : Math.abs(v) > vn * 0.2;
         states[inst.id] = { speed: running ? Math.sign(v) * Math.min(1.6, Math.abs(v) / vn) : 0 };
         if (Math.abs(v) > vn * 1.5) push(`mot-${inst.id}`, 'warning', `${L}: sobretensão`, `${V(Math.abs(v))} aplicados (nominal ${V(vn)}).`, [inst.id]);
+        break;
+      }
+      case 'multimeter': {
+        const mode = String(inst.props.mode ?? 'dcv');
+        const v = vd('VOHM', 'COM');
+        let display = 'OL', unit = '';
+        let beep = false;
+        if (mode === 'dcv') { if (v !== null) ({ display, unit } = meterFmt(v, 'V')); else display = '- - - -'; }
+        else if (mode === 'acv') { ({ display, unit } = meterFmt(acRms(inst.id, v), 'V')); }
+        else if (mode === 'dca') {
+          const ima = iin('VOHM'), ia = iin('A10');
+          ({ display, unit } = meterFmt(ima + ia, 'A'));
+          if (Math.abs(ima) > 0.4) { display = 'FUSE'; unit = ''; push(`dmmfuse-${inst.id}`, 'error', `${L}: fusível do multímetro queimado`, `Passaram ${A(Math.abs(ima))} pela entrada mA (máx. 400 mA). Para correntes altas use a entrada 10A. Se o multímetro estava em paralelo com uma fonte, criou um curto-circuito — o amperímetro liga-se SEMPRE em série.`, [inst.id]); }
+          else if (Math.abs(ia) > 10) push(`dmm10-${inst.id}`, 'error', `${L}: corrente acima de 10 A`, `${A(Math.abs(ia))} na entrada 10A.`, [inst.id]);
+        } else {
+          const iExt = 1e-3 - (v ?? 0) / 3000;            // test current that actually enters the circuit
+          if (v === null || iExt < 1e-7 || v > 2.9) display = 'OL';
+          else if (mode === 'diode') ({ display, unit } = { display: v.toFixed(3), unit: 'V' });
+          else { const r = v / iExt; ({ display, unit } = meterFmt(r, 'Ω')); beep = mode === 'cont' && r < 50; }
+          if (mode !== 'diode' && cp.hasSourceOtherThan(inst.id)) push(`dmmpow-${inst.id}`, 'warning', `${L}: circuito alimentado`, 'Mediu resistência num circuito com fonte ligada: a leitura não é fiável e um multímetro real pode danificar-se. Desligue a alimentação antes de medir Ω/continuidade.', [inst.id]);
+        }
+        states[inst.id] = { display, unit, beep };
+        break;
+      }
+      case 'voltmeter': { const v = vd('+', '-'); states[inst.id] = v === null ? { display: '- - - -', unit: 'V' } : meterFmt(v, 'V'); break; }
+      case 'ammeter': {
+        const i = iin('+');
+        states[inst.id] = meterFmt(i, 'A');
+        if (Math.abs(i) > 5) push(`amm-${inst.id}`, 'error', `${L}: amperímetro em paralelo?`, `Passam ${A(Math.abs(i))} pelo amperímetro — quase certamente está ligado em paralelo com uma fonte, o que é um curto-circuito. O amperímetro liga-se em série.`, [inst.id]);
+        break;
+      }
+      case 'wattmeter': {
+        const v = vd('V+', 'V-'), i = iin('I+');
+        states[inst.id] = v === null ? { display: '- - - -', unit: 'W' } : meterFmt(v * i, 'W');
         break;
       }
       case 'solenoid': states[inst.id] = { energized: Math.abs(iin('1')) > 0.6 * num(inst.props.vnom, 12) / num(inst.props.rcoil, 30) }; break;
