@@ -25,7 +25,7 @@
 
 ## Fase 2 — Modelo elétrico + motor DC ✅ (implementada)
 
-**Arquitetura:**  (modelo de cada componente) →  (documento + netlist → elementos) →  (MNA + Newton-Raphson, puro, corre num Web Worker) →  (valores por pino, estados visuais, avisos). A sessão () recalcula a cada alteração enquanto a simulação está ativa; se o Worker falhar, resolve na thread principal.
+**Arquitetura:** `engine/sim/models.ts` (modelo de cada componente) → `compile.ts` (documento + netlist → elementos) → `solver.ts` (MNA + Newton-Raphson, puro, corre num Web Worker) → `interpret.ts` (valores por pino, estados visuais, avisos). A sessão (`store/sim.ts`) recalcula a cada alteração enquanto a simulação está ativa; se o Worker falhar, resolve na thread principal.
 
 **Solver:** análise nodal modificada; díodos/LEDs (Shockley + resistência série + rutura Zener), BJT (Ebers–Moll), MOSFET/JFET (lei quadrática), limitação de junção estilo SPICE (pnjlim), gmin stepping e source stepping; elementos com modos discretos (saturação de amp-ops, dropout de reguladores, níveis lógicos, fonte CV/CC, relés, fusíveis); deteção de nós flutuantes e de sistemas sem solução (laços de fontes).
 
