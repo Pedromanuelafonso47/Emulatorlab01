@@ -126,6 +126,70 @@ registerComponent({
   sim: { model: 'wattmeter', status: 'implemented' },
 });
 
+// ───────── Oscilloscope ─────────
+const TDIV: [string, string][] = ['1e-6', '2e-6', '5e-6', '1e-5', '2e-5', '5e-5', '1e-4', '2e-4', '5e-4', '1e-3', '2e-3', '5e-3', '1e-2', '2e-2', '5e-2', '0.1', '0.2', '0.5', '1'].map((v) => [v, fmtT(+v) + '/div']);
+const VDIV: [string, string][] = ['0.01', '0.02', '0.05', '0.1', '0.2', '0.5', '1', '2', '5', '10', '20', '50'].map((v) => [v, (+v < 1 ? `${+v * 1000} mV` : `${v} V`) + '/div']);
+function fmtT(s: number) { return s >= 1 ? `${s} s` : s >= 1e-3 ? `${+(s * 1e3).toPrecision(3)} ms` : `${+(s * 1e6).toPrecision(3)} µs`; }
+
+registerComponent({
+  type: 'oscilloscope', name: 'Osciloscópio (2 canais)', category: 'instruments', prefix: 'XSC',
+  description: 'Visualiza a tensão ao longo do tempo em CH1 e CH2 (referidas a GND). Ajuste V/div, tempo/div e trigger. Abra o separador “Osciloscópio” para o ecrã grande e as medições.',
+  tags: ['osciloscópio', 'scope', 'ondas', 'sinal', 'frequência'],
+  bbox: { x: -62, y: -86, w: 124, h: 92 },
+  pins: [
+    { id: 'CH1', name: 'CH1 (amarelo)', x: -30, y: 0, role: 'input' },
+    { id: 'CH2', name: 'CH2 (azul)', x: -10, y: 0, role: 'input' },
+    { id: 'GND', name: 'GND (massa das pontas)', x: 30, y: 0, role: 'ground' },
+  ],
+  props: [
+    sel('tdiv', 'Base de tempo', '1e-3', TDIV), sel('vdiv1', 'CH1 escala', '1', VDIV), sel('vdiv2', 'CH2 escala', '1', VDIV),
+    sel('coupling1', 'CH1 acoplamento', 'dc', [['dc', 'DC'], ['ac', 'AC']]), sel('coupling2', 'CH2 acoplamento', 'dc', [['dc', 'DC'], ['ac', 'AC']]),
+    { key: 'off1', label: 'CH1 posição (div)', type: 'number', default: 0, min: -4, max: 4, step: 0.5 },
+    { key: 'off2', label: 'CH2 posição (div)', type: 'number', default: 0, min: -4, max: 4, step: 0.5 },
+    sel('trigSource', 'Trigger: fonte', 'ch1', [['ch1', 'CH1'], ['ch2', 'CH2']]), sel('trigEdge', 'Trigger: flanco', 'rise', [['rise', 'Ascendente'], ['fall', 'Descendente']]),
+    { key: 'trigLevel', label: 'Trigger: nível', type: 'number', default: 0.5, unit: 'V', si: true },
+  ],
+  valueLabel: (p) => `${fmtT(Number(p.tdiv))}/div`,
+  render: ({ props, state }) => {
+    const view = state?.view as { ch1: [number, number][]; ch2: [number, number][]; triggered: boolean } | undefined;
+    const X = (d: number) => -52 + d * 7.2, Y = (d: number) => -49 - d * 6.6;
+    const pl = (pts: [number, number][]) => pts.map(([x, y]) => `${X(x).toFixed(2)},${Y(y).toFixed(2)}`).join(' ');
+    return (
+      <Bench w={122} h={85}>
+        <rect x={-55} y={-80} width={78} height={60} rx={1.5} fill="#06100a" stroke="#333" strokeWidth={0.6} />
+        {Array.from({ length: 11 }, (_, i) => <line key={`v${i}`} x1={X(i)} y1={Y(4)} x2={X(i)} y2={Y(-4)} stroke="#1c3524" strokeWidth={i === 5 ? 0.45 : 0.25} />)}
+        {Array.from({ length: 9 }, (_, i) => <line key={`h${i}`} x1={X(0)} y1={Y(i - 4)} x2={X(10)} y2={Y(i - 4)} stroke="#1c3524" strokeWidth={i === 4 ? 0.45 : 0.25} />)}
+        {view?.ch1.length ? <polyline points={pl(view.ch1)} fill="none" stroke="#ffd23a" strokeWidth={0.7} /> : null}
+        {view?.ch2.length ? <polyline points={pl(view.ch2)} fill="none" stroke="#3dd2ff" strokeWidth={0.7} /> : null}
+        <Txt x={-53} y={-77} size={2.4} fill="#ffd23a" anchor="start">{`CH1 ${VDIV.find((v) => v[0] === String(props.vdiv1))?.[1] ?? ''}`}</Txt>
+        <Txt x={-20} y={-77} size={2.4} fill="#3dd2ff" anchor="start">{`CH2 ${VDIV.find((v) => v[0] === String(props.vdiv2))?.[1] ?? ''}`}</Txt>
+        <Txt x={21} y={-22.5} size={2.4} fill="#cfd6e0" anchor="end">{`${fmtT(Number(props.tdiv))}/div ${view ? (view.triggered ? 'T’d' : 'Auto') : ''}`}</Txt>
+        {[0, 1, 2, 3, 4, 5].map((i) => <circle key={i} cx={34 + (i % 2) * 14} cy={-70 + Math.floor(i / 2) * 15} r={4.6} fill="url(#g-black)" stroke="#111" strokeWidth={0.4} />)}
+        <Txt x={41} y={-26} size={2.6} fill="#cfd6e0">SCOPE</Txt>
+        <Jack x={-30} y={0} color="#ffd23a" label="CH1" /><Jack x={-10} y={0} color="#3dd2ff" label="CH2" /><Jack x={30} y={0} color="#222" label="GND" />
+      </Bench>
+    );
+  },
+  datasheet: { summary: 'Ligue CH1/CH2 aos pontos a observar e GND à massa do circuito. Medições automáticas (frequência, período, Vpp, Vmáx, Vmín, Vmédia, Vrms) no separador Osciloscópio.' },
+  sim: { model: 'oscilloscope', status: 'implemented' },
+});
+
+registerComponent({
+  type: 'frequency-counter', name: 'Frequencímetro', category: 'instruments', prefix: 'XFC',
+  description: 'Mede a frequência de um sinal periódico entre IN e GND.',
+  tags: ['frequência', 'frequencímetro', 'hz', 'período'],
+  bbox: { x: -36, y: -44, w: 72, h: 50 },
+  pins: [{ id: 'IN', name: 'Entrada', x: -10, y: 0, role: 'input' }, { id: 'GND', name: 'GND', x: 10, y: 0, role: 'ground' }],
+  render: ({ state }) => (
+    <Bench w={70} h={43}>
+      <Lcd x={-30} y={-38} w={60} h={18} text={(state?.display as string) ?? '- - - -'} sub={(state?.unit as string) ?? 'Hz'} color="#3dd2ff" bg="#081018" />
+      <Txt x={0} y={-14} size={3.2} fill="#cfd6e0">FREQUENCÍMETRO</Txt>
+      <Jack x={-10} y={0} color="#d63a32" label="IN" /><Jack x={10} y={0} color="#222" label="GND" />
+    </Bench>
+  ),
+  sim: { model: 'frequency-counter', status: 'implemented' },
+});
+
 const coming = (type: string, name: string, description: string, phase: string, tags: string[], render: () => ReactNode) =>
   registerComponent({
     type, name, category: 'instruments', prefix: 'XM', description, tags,

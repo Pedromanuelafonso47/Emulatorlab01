@@ -232,7 +232,7 @@ export function interpret(doc: CircuitDocument, nl: Netlist, cp: Compiled, res: 
     const node = cp.netNode.get(n.id);
     if (node === undefined || !res.floating[node]) continue;
     const labels = [...new Set(n.devicePins.map((p) => doc.components[p.compId]?.label))].join(', ');
-    issues.push({ id: `sim-float-${n.id}`, severity: 'warning', title: `Nó ${n.name} flutuante`, message: `O nó ${n.name} (${labels}) não tem nenhum caminho DC até à massa/alimentação — a sua tensão é indeterminada. Entradas flutuantes (portas de MOSFET, entradas lógicas) comportam-se de forma imprevisível: use uma resistência de pull-up/pull-down.`, compIds: [...new Set(n.devicePins.map((p) => p.compId))] });
+    issues.push({ id: `sim-float-${n.id}`, severity: 'warning', title: `Nó ${n.name} flutuante`, message: `O nó ${n.name} (${labels}) não tem nenhum caminho DC até à referência (massa) — a sua tensão absoluta é indeterminada. Pode ser intencional num circuito galvanicamente isolado (ex.: primário de um transformador). Caso contrário, entradas flutuantes (portas de MOSFET, entradas lógicas) comportam-se de forma imprevisível: use uma resistência de pull-up/pull-down.`, compIds: [...new Set(n.devicePins.map((p) => p.compId))] });
   }
   for (const u of cp.unsupported) {
     const c = doc.components[u.compId];

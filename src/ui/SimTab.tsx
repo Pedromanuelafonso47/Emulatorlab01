@@ -9,7 +9,12 @@ import { formatSI } from '@/domain/units';
 export function SimTab() {
   const running = useSim((s) => s.running);
   const interp = useSim((s) => s.interp);
-  const ms = useSim((s) => s.solveMs);
+  const simTime = useSim((s) => s.simTime);
+  const speed = useSim((s) => s.speed);
+  const dynamic = useSim((s) => s.dynamic);
+  const dt = useSim((s) => s.dt);
+  const speedSetting = useSim((s) => s.speedSetting);
+  const setSpeed = useSim((s) => s.setSpeed);
   const start = useSim((s) => s.start);
   const doc = useEditor((s) => s.doc);
   const set = useEditor((s) => s.set);
@@ -20,8 +25,7 @@ export function SimTab() {
       <div className="flex items-start gap-4 px-4 py-3 font-sans">
         <button onClick={start} className="flex shrink-0 items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-[12.5px] font-semibold text-white hover:bg-emerald-500"><Play className="h-4 w-4" fill="currentColor" />Simular</button>
         <div className="max-w-3xl text-[12.5px] leading-relaxed text-lab-400">
-          Simulação DC (ponto de funcionamento) por análise nodal modificada com Newton-Raphson, num Web Worker. Enquanto estiver ativa, o circuito é recalculado a cada alteração; pode premir botões e interruptores diretamente no laboratório.
-          Componentes temporizados (555, contadores, AC, condensadores a carregar) ficam para a Fase 4 e são assinalados como “não simulados”.
+          Análise nodal modificada com Newton-Raphson num Web Worker. Circuitos só com elementos estáticos são resolvidos em DC; com condensadores, indutores, fontes AC, 555, lógica sequencial ou microcontroladores corre uma simulação transitória em tempo real (Backward-Euler). Pode premir botões e interruptores no laboratório durante a simulação.
         </div>
       </div>
     );
@@ -39,11 +43,24 @@ export function SimTab() {
     });
 
   return (
-    <div className="grid h-full grid-cols-1 gap-0 md:grid-cols-[minmax(240px,1fr)_2fr]">
+    <div className="flex h-full flex-col">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-lab-800 px-3 py-1 font-sans text-[11.5px] text-lab-400">
+      {dynamic ? (<>
+        <span>Tempo simulado: <b className="font-mono text-lab-100">{formatSI(simTime, 's', 4)}</b></span>
+        <span>Passo: <b className="font-mono text-lab-100">{formatSI(dt, 's', 2)}</b></span>
+        <span>Velocidade real: <b className={'font-mono ' + (speed < 0.95 * (speedSetting === 'auto' ? 1 : speedSetting) ? 'text-amber-300' : 'text-lab-100')}>{speed >= 0.995 ? '1×' : speed.toPrecision(2) + '×'}</b> do tempo real</span>
+        <label className="flex items-center gap-1">Ritmo:
+          <select value={String(speedSetting)} onChange={(e) => setSpeed(e.target.value === 'auto' ? 'auto' : (+e.target.value as 1))} className="rounded border border-lab-600 bg-lab-900 px-1 py-0.5 text-lab-100">
+            <option value="auto">Automático</option><option value="1">Tempo real (1×)</option><option value="0.1">Câmara lenta 0,1×</option><option value="0.01">0,01×</option><option value="0.001">0,001×</option>
+          </select>
+        </label>
+      </>) : <span>Circuito sem elementos dinâmicos — resolvido como ponto de funcionamento DC (exato, sem passo temporal).</span>}
+    </div>
+    <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 md:grid-cols-[minmax(240px,1fr)_2fr]">
       <div className="overflow-y-auto border-r border-lab-800">
         <div className="sticky top-0 flex items-center justify-between bg-lab-900 px-3 py-1 text-[11px] uppercase text-lab-500">
           <span>Tensão dos nós (ref.: {interp.summary.ground ? nl.netById.get(interp.summary.ground)?.name ?? 'GND' : '—'})</span>
-          <span className="normal-case">{interp.summary.iterations} it. · {ms.toFixed(1)} ms</span>
+          <span className="normal-case">{dynamic ? 'transitório' : 'DC'}</span>
         </div>
         <table className="w-full">
           <tbody>
@@ -78,8 +95,9 @@ export function SimTab() {
             })}
           </tbody>
         </table>
-        <div className="px-3 py-1.5 font-sans text-[11px] text-lab-500">↑ = potência fornecida (fontes). Corrente = maior corrente num terminal do componente.</div>
+        <div className="px-3 py-1.5 font-sans text-[11px] text-lab-500">↑ = potência fornecida (fontes). Corrente = maior corrente num terminal do componente. Valores instantâneos no último passo.</div>
       </div>
+    </div>
     </div>
   );
 }

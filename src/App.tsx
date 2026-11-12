@@ -22,7 +22,7 @@ function useBootstrap() {
     const st = useEditor.getState();
     const exParam = new URLSearchParams(location.search).get('example');
     const ex = exParam && EXAMPLES.find((e) => e.id === exParam);
-    if (new URLSearchParams(location.search).get('sim') === '1') setTimeout(() => { useSim.getState().start(); useEditor.getState().set({ bottomOpen: true, bottomTab: 'sim' }); }, 100);
+    if (new URLSearchParams(location.search).get('sim') === '1') setTimeout(() => { useSim.getState().start(); useEditor.getState().set({ bottomOpen: true, bottomTab: (new URLSearchParams(location.search).get('tab') as 'sim') ?? 'sim' }); }, 100);
     if (ex) { st.loadDocument(ex.build()); st.log('info', 'Exemplo aberto: ' + ex.name); setTimeout(() => useEditor.getState().fitToContent(canvasSize.w, canvasSize.h), 50); return; }
     const id = lastProjectId();
     const p = id ? loadProject(id) : null;

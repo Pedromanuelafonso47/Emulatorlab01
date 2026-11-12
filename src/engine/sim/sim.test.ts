@@ -230,10 +230,11 @@ describe('DC solver — analytic checks', () => {
     expect(s.i(led, 'A')).toBeGreaterThan(0.010); expect(s.i(led, 'A')).toBeLessThan(0.015);
   });
 
-  it('unsupported parts are listed, not faked (NE555 example)', () => {
+  it('unsupported parts are listed, not faked', () => {
     const doc = EXAMPLES.find((e) => e.id === 'ne555-bb')!.build();
+    const u1 = uid('c');
+    doc.components[u1] = { id: u1, type: 'dac0808', label: 'U9', x: 900, y: 900, rotation: 0, props: {} };
     const s = run(doc);
-    const u1 = Object.values(doc.components).find((c) => c.type === 'ne555')!.id;
     expect(s.interp.issues.some((x) => x.id === `sim-uns-${u1}`)).toBe(true);
     expect(s.interp.comps[u1].simulated).toBe(false);
   });

@@ -58,6 +58,7 @@ function build(doc: CircuitDocument, nl: Netlist, blown: Set<string>, groundNet:
       unsupported.push({ compId: inst.id, note: model?.note ?? 'Sem modelo elétrico nesta fase.' });
       continue;
     }
+    let localIndex = 0;
     const pins = getPins(def, inst.props);
     const props = blown.has(inst.id) ? { ...inst.props, blown: true } : inst.props;
     const ctx: ModelCtx = {
@@ -70,7 +71,8 @@ function build(doc: CircuitDocument, nl: Netlist, blown: Set<string>, groundNet:
       pinByName: (name) => pins.find((p) => p.name === name)?.id,
       internal: () => { nodeNets.push('__int' + nodeCount); return nodeCount++; },
       add: (e) => {
-        if (e.k === 'V' || e.k === 'I' || e.k === 'SUPPLY') { hasSource = true; sourceOwners.push(inst.id); }
+        if (e.k === 'V' || e.k === 'I' || e.k === 'SUPPLY' || e.k === 'VT') { hasSource = true; sourceOwners.push(inst.id); }
+        e.key = inst.id + ':' + (localIndex++);
         elements.push(e); elementOwner.push(inst.id); return elements.length - 1;
       },
       own: (...p): Owner => ({ compId: inst.id, pins: p }),

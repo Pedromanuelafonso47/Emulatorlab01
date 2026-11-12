@@ -42,7 +42,7 @@ export function TopBar({ onOpenProjects }: { onOpenProjects: () => void }) {
         <svg viewBox="0 0 32 32" className="h-7 w-7"><rect width="32" height="32" rx="7" fill="#1b2230" /><path d="M4 16h6l3-7 6 14 3-7h6" fill="none" stroke="#2f9bff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
         <div className="hidden leading-tight sm:block">
           <div className="text-[13px] font-bold tracking-wide text-white">ElectroLab</div>
-          <div className="text-[10px] text-lab-400">Fase 2 · Simulação DC</div>
+          <div className="text-[10px] text-lab-400">Simulação DC + transitória</div>
         </div>
       </div>
       <ProjectName />
@@ -92,12 +92,14 @@ function SimButtons() {
   const start = useSim((s) => s.start);
   const stop = useSim((s) => s.stop);
   const interp = useSim((s) => s.interp);
+  const simTime = useSim((s) => s.simTime);
+  const dynamic = useSim((s) => s.dynamic);
   const errors = interp?.issues.filter((i) => i.severity === 'error').length ?? 0;
   return (
     <>
       {running && (
         <span className="mr-1 hidden items-center gap-1.5 text-[11.5px] text-emerald-300 md:flex">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />DC em tempo real
+          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />{dynamic ? <span className="font-mono">t = {simTime < 1 ? (simTime * 1000).toFixed(1) + ' ms' : simTime.toFixed(2) + ' s'}</span> : 'DC'}
           {errors > 0 && <span className="rounded bg-red-500/90 px-1.5 text-[10.5px] font-bold text-white">{errors} erro{errors > 1 ? 's' : ''}</span>}
         </span>
       )}

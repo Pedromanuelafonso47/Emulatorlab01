@@ -8,6 +8,7 @@ import { canvasSize } from '@/editor/Canvas';
 import { useSim } from '@/store/sim';
 import { SimTab } from './SimTab';
 import { AnalysisTab } from './AnalysisTab';
+import { ScopeTab } from './ScopeTab';
 import { Brain } from 'lucide-react';
 import type { Issue } from '@/engine/erc';
 
@@ -30,6 +31,7 @@ export function BottomPanel() {
     { id: 'netlist', label: 'Nós (netlist)', icon: <Network className="h-3.5 w-3.5" />, badge: <span className="ml-1 text-[10px] text-lab-400">{nl.meaningful.length}</span> },
     { id: 'measure', label: 'Medições', icon: <Gauge className="h-3.5 w-3.5" /> },
     { id: 'sim', label: 'Simulação', icon: <Activity className="h-3.5 w-3.5" /> },
+    { id: 'scope', label: 'Osciloscópio', icon: <Activity className="h-3.5 w-3.5" /> },
     { id: 'analysis', label: 'Análise', icon: <Brain className="h-3.5 w-3.5" /> },
   ];
   return (
@@ -51,6 +53,7 @@ export function BottomPanel() {
         {tab === 'measure' && <MeasureTab />}
         {tab === 'sim' && <SimTab />}
         {tab === 'analysis' && <AnalysisTab />}
+        {tab === 'scope' && <ScopeTab />}
       </div>
     </div>
   );

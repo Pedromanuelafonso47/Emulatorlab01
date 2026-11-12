@@ -162,6 +162,70 @@ export const EXAMPLES: Example[] = [
     },
   },
   {
+    id: 'rc-charge',
+    name: 'Carga e descarga de um condensador (RC)',
+    description: 'R = 10 kΩ, C = 100 µF → τ = RC = 1 s. Na posição A o condensador carrega até 9 V (63 % em 1 τ); mude a chave para B (clique nela durante a simulação) para descarregar. Observe a curva exponencial no osciloscópio.',
+    build: () => {
+      const b = new Builder('Circuito RC');
+      const bat = b.add('battery-9v', 'BT1', -160, 0, { rint: 0.01 });
+      const sw = b.add('slide-switch', 'SW1', -60, -80);
+      const r = b.add('resistor', 'R1', 20, -80, { resistance: 10000 });
+      const c = b.add('capacitor-electrolytic', 'C1', 80, -40, { capacitance: 100e-6, voltage: 16 });
+      const sc = b.add('oscilloscope', 'XSC1', 200, 60, { tdiv: '0.5', vdiv1: '2', trigLevel: 1, off1: -2 });
+      b.wire([bat, '+'], [sw, 'A'], '#e53935', [{ x: -170, y: -120 }, { x: -70, y: -120 }]);
+      b.wire([sw, 'COM'], [r, '1'], '#fb8c00', [{ x: -60, y: -100 }, { x: 0, y: -100 }]);
+      b.wire([r, '2'], [c, '1'], '#fb8c00', [{ x: 70, y: -80 }]);
+      b.wire([c, '2'], [bat, '-'], '#212121', [{ x: 90, y: 40 }, { x: -150, y: 40 }]);
+      b.wire([sw, 'B'], [bat, '-'], '#212121', [{ x: -50, y: 20 }, { x: -150, y: 20 }]);
+      b.wire([sc, 'CH1'], [c, '1'], '#fdd835', [{ x: 170, y: -50 }, { x: 70, y: -50 }], 'jumper-mm');
+      b.wire([sc, 'GND'], [c, '2'], '#212121', [{ x: 230, y: 40 }, { x: 90, y: 40 }], 'jumper-mm');
+      return b.doc;
+    },
+  },
+  {
+    id: 'psu-bridge',
+    name: 'Fonte com transformador, ponte e filtro',
+    description: 'Rede 230 V / 50 Hz → transformador 12 V → ponte retificadora → condensador de 470 µF → carga de 1 kΩ. O osciloscópio mostra a tensão retificada (CH1) com o ripple e o secundário (CH2).',
+    build: () => {
+      const b = new Builder('Fonte linear não regulada');
+      const ac = b.add('ac-source', 'V1', -200, 40, { vrms: 230, frequency: 50 });
+      const t = b.add('transformer', 'T1', -80, 0, { vp: 230, vs: 12, va: 6 });
+      const br = b.add('bridge-rectifier', 'BR1', 20, 0);
+      const c = b.add('capacitor-electrolytic', 'C1', 110, 0, { capacitance: 470e-6, voltage: 35 });
+      const r = b.add('resistor', 'R1', 160, 30, { resistance: 1000 }, 1);
+      const sc = b.add('oscilloscope', 'XSC1', 300, 90, { tdiv: '5e-3', vdiv1: '5', vdiv2: '5', trigSource: 'ch2', trigLevel: 1, off1: -2 });
+      b.wire([ac, '1'], [t, 'P1'], '#e53935', [{ x: -210, y: -10 }]);
+      b.wire([ac, '2'], [t, 'P2'], '#1e88e5', [{ x: -190, y: 10 }]);
+      b.wire([t, 'S1'], [br, 'AC1'], '#fdd835', [{ x: -30, y: -10 }, { x: -30, y: 50 }, { x: 20, y: 50 }]);
+      b.wire([t, 'S2'], [br, 'AC2'], '#fdd835', [{ x: -40, y: 10 }, { x: -40, y: 60 }, { x: 30, y: 60 }]);
+      b.wire([br, '+'], [c, '1'], '#e53935', [{ x: 10, y: -40 }, { x: 100, y: -40 }]);
+      b.wire([br, '-'], [c, '2'], '#212121', [{ x: 40, y: 70 }, { x: 120, y: 70 }]);
+      b.wire([r, '1'], [c, '1'], '#e53935', [{ x: 160, y: -40 }, { x: 100, y: -40 }]);
+      b.wire([r, '2'], [c, '2'], '#212121', [{ x: 160, y: 70 }, { x: 120, y: 70 }]);
+      b.wire([sc, 'CH1'], [c, '1'], '#fdd835', [{ x: 270, y: -40 }, { x: 100, y: -40 }], 'jumper-mm');
+      b.wire([sc, 'CH2'], [br, 'AC1'], '#00acc1', [{ x: 290, y: 110 }, { x: 20, y: 110 }], 'jumper-mm');
+      b.wire([sc, 'GND'], [br, '-'], '#212121', [{ x: 330, y: 120 }, { x: 40, y: 120 }], 'jumper-mm');
+      return b.doc;
+    },
+  },
+  {
+    id: 'ne555-scope',
+    name: 'NE555 com osciloscópio',
+    description: 'O astável da breadboard com o osciloscópio ligado: CH1 na saída (onda quadrada), CH2 no condensador (carga/descarga entre ⅓ e ⅔ de Vcc).',
+    build: () => {
+      const doc = EXAMPLES.find((e) => e.id === 'ne555-bb')!.build();
+      doc.name = 'NE555 com osciloscópio';
+      const bb = Object.values(doc.components).find((c) => c.type === 'breadboard-half')!.id;
+      const sc = uid('c');
+      doc.components[sc] = { id: sc, type: 'oscilloscope', label: 'XSC1', x: 70, y: 220, rotation: 0, props: { ...defaultProps(getDef('oscilloscope')!), tdiv: '0.2', vdiv1: '5', vdiv2: '2', trigLevel: 3, off1: -2, off2: -2 } };
+      const wire = (pin: string, hole: string, color: string, pts: Point[]) => { const id = uid('w'); doc.wires[id] = { id, from: { kind: 'pin', compId: sc, pinId: pin }, to: { kind: 'pin', compId: bb, pinId: hole }, points: pts, color, style: 'jumper-mm' }; };
+      wire('CH1', 'j10', '#fdd835', [{ x: 40, y: 140 }, { x: -50, y: 140 }]);
+      wire('CH2', 'j13', '#00acc1', [{ x: 60, y: 130 }, { x: -20, y: 130 }]);
+      wire('GND', 'BN21', '#212121', [{ x: 100, y: 120 }, { x: 60, y: 120 }]);
+      return doc;
+    },
+  },
+  {
     id: 'catalog',
     name: 'Catálogo visual de componentes',
     description: 'Todos os componentes da biblioteca dispostos numa grelha — útil para explorar a biblioteca e ver a disposição real dos pinos.',

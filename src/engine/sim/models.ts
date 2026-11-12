@@ -36,6 +36,19 @@ function diode(c: ModelCtx, a: string, k: string, p: { is: number; n: number; rs
   c.add({ k: 'R', a: mid, b: c.node(k), r: p.rs, own: c.own(null, k) });
 }
 
+/** Capacitor (state persisted by key during a run). */
+const cap = (c: ModelCtx, a: string, b: string, C: number) => c.add({ k: 'C', a: c.node(a), b: c.node(b), c: Math.max(C, 1e-15), vprev: 0, own: c.own(a, b) });
+/** Inductor with series winding resistance. */
+function ind(c: ModelCtx, a: string, b: string, L: number, rdc: number) {
+  const mid = c.internal();
+  c.add({ k: 'L', a: c.node(a), b: mid, l: Math.max(L, 1e-12), iprev: 0, own: c.own(a, null) });
+  c.add({ k: 'R', a: mid, b: c.node(b), r: Math.max(rdc, 1e-3), own: c.own(null, b) });
+}
+/** Sequential logic block. */
+function seq(c: ModelCtx, kind: 'dff2' | 'cd4017' | 'cd4060', ins: string[], outs: string[], vcc: string, gnd: string, st: number[], prev: boolean[], cand: number[]) {
+  c.add({ k: 'SEQ', kind, vcc: c.node(vcc), gnd: c.node(gnd), ins: ins.map((p) => c.node(p)), outs: outs.map((p) => c.node(p)), st, prev, cand, own: c.own(...outs) });
+}
+
 /** Saturation current giving forward voltage vf at current i. */
 const isFor = (vf: number, i: number, n: number) => i / Math.exp(vf / (n * VT));
 
@@ -116,8 +129,6 @@ function usbBoard(rails: [string, number, number][]) {
 }
 
 const MCU_NOTE = 'Alimentação por USB modelada (pinos 5 V / 3,3 V como fontes). Os pinos de E/S ficam em alta impedância até haver execução de código (Fase 5).';
-const TIME_NOTE = 'Componente com comportamento temporal/sequencial — requer simulação transitória (Fase 4). Tratado como circuito aberto.';
-const AC_NOTE = 'Fonte/elemento de corrente alternada — requer simulação transitória (Fase 4). Tratado como circuito aberto.';
 
 export const MODELS: Record<string, Model> = {
   // ── passive ──
@@ -132,11 +143,21 @@ export const MODELS: Record<string, Model> = {
       R(c, '2', '3', Math.max(0.5, rt * (1 - f)));
     },
   },
-  'capacitor-ceramic': { status: 'partial', note: 'Em regime DC estacionário um condensador é um circuito aberto (fuga de 100 MΩ). Carga/descarga ao longo do tempo: Fase 4.', build: (c) => R(c, '1', '2', 1e8) },
-  'capacitor-electrolytic': { status: 'partial', note: 'Em regime DC estacionário um condensador é um circuito aberto (fuga de 10 MΩ). Carga/descarga ao longo do tempo: Fase 4.', build: (c) => R(c, '1', '2', 1e7) },
-  inductor: { status: 'partial', note: 'Em regime DC estacionário um indutor comporta-se como a sua resistência de enrolamento.', build: (c) => R(c, '1', '2', Math.max(0.01, num(c.props.rdc, 0.5))) },
-  'coil-toroid': { status: 'partial', note: 'Em regime DC estacionário: resistência do enrolamento.', build: (c) => R(c, '1', '2', Math.max(0.01, num(c.props.rdc, 0.2))) },
-  transformer: { status: 'none', note: 'Um transformador só funciona com corrente alternada (Fase 4). Em DC não transfere energia.' },
+  'capacitor-ceramic': { status: 'implemented', note: 'Condensador ideal (i = C·dv/dt) com fuga de 100 MΩ. Começa descarregado.', build: (c) => { R(c, '1', '2', 1e8); cap(c, '1', '2', num(c.props.capacitance, 1e-7)); } },
+  'capacitor-electrolytic': { status: 'implemented', note: 'Condensador ideal (i = C·dv/dt) com fuga de 10 MΩ. Começa descarregado.', build: (c) => { R(c, '1', '2', 1e7); cap(c, '1', '2', num(c.props.capacitance, 1e-4)); } },
+  inductor: { status: 'implemented', note: 'Indutor ideal (v = L·di/dt) em série com a resistência do enrolamento.', build: (c) => ind(c, '1', '2', num(c.props.inductance, 1e-4), num(c.props.rdc, 0.5)) },
+  'coil-toroid': { status: 'implemented', note: 'Indutor ideal em série com a resistência do enrolamento.', build: (c) => ind(c, '1', '2', num(c.props.inductance, 1e-3), num(c.props.rdc, 0.2)) },
+  transformer: {
+    status: 'implemented', note: 'Transformador ideal (Vs/Vp = Ns/Np) com resistências dos enrolamentos (5 %) e indutância de magnetização (corrente em vazio ≈5 %). Em DC não transfere energia.',
+    build: (c) => {
+      const vp = num(c.props.vp, 230), vs = num(c.props.vs, 12), va = Math.max(0.1, num(c.props.va, 6));
+      const m1 = c.internal(), m2 = c.internal();
+      c.add({ k: 'R', a: c.node('P1'), b: m1, r: 0.05 * vp * vp / va, own: c.own('P1', null) });
+      c.add({ k: 'XFMR', p1: m1, p2: c.node('P2'), s1: m2, s2: c.node('S2'), n: vs / vp, own: c.own(null, 'P2', null, 'S2') });
+      c.add({ k: 'R', a: m2, b: c.node('S1'), r: 0.05 * vs * vs / va, own: c.own(null, 'S1') });
+      c.add({ k: 'L', a: m1, b: c.node('P2'), l: (vp * vp) / (0.05 * va * 2 * Math.PI * 50), iprev: 0, own: c.own(null, 'P2') });
+    },
+  },
   ntc: {
     status: 'implemented', note: 'Modelo β: R(T) = R25·e^(β(1/T − 1/298,15)).',
     build: (c) => { const T = num(c.props.temperature, 25) + 273.15; R(c, '1', '2', num(c.props.r25, 10e3) * Math.exp(num(c.props.beta, 3950) * (1 / T - 1 / 298.15))); },
@@ -171,8 +192,14 @@ export const MODELS: Record<string, Model> = {
     status: 'partial', note: 'Lei quadrática com Idss = 3 mA, Vp = −1,5 V; díodo de porta não incluído.',
     build: (c) => c.add({ k: 'MOS', d: c.node('D'), g: c.node('G'), s: c.node('S'), p: false, vth: -1.5, kp: (2 * 0.003) / 2.25, lambda: 0.02, own: c.own('D', 'G', 'S') }),
   },
-  triac: { status: 'none', note: 'Tiristores dependem de disparo e passagem por zero — Fase 4.' },
-  scr: { status: 'none', note: 'Tiristores dependem de disparo e memória de estado — Fase 4.' },
+  triac: {
+    status: 'partial', note: 'Interruptor bidirecional com memória: dispara com |Vg| > 0,7 V e desliga quando |I| < 10 mA. Queda em condução (~1 V) não modelada.',
+    build: (c) => { c.add({ k: 'THY', a: c.node('MT2'), c: c.node('MT1'), g: c.node('G'), triac: true, on: false, cand: false, ih: 0.01, own: c.own('MT2', 'MT1') }); R(c, 'G', 'MT1', 100); },
+  },
+  scr: {
+    status: 'partial', note: 'Dispara com corrente de porta (Vgk > 0,7 V) e mantém-se a conduzir até I < 5 mA. Queda em condução (~1 V) não modelada.',
+    build: (c) => { c.add({ k: 'THY', a: c.node('A'), c: c.node('K'), g: c.node('G'), triac: false, on: false, cand: false, ih: 0.005, own: c.own('A', 'K') }); diode(c, 'G', 'K', { is: 1e-12, n: 1.5, rs: 50 }); },
+  },
   'bridge-rectifier': {
     status: 'implemented',
     build: (c) => {
@@ -189,13 +216,42 @@ export const MODELS: Record<string, Model> = {
   '7408': { status: 'implemented', note: 'Lógica estática: limiar VCC/2, saída com 40 Ω.', build: (c) => { gate(c, 'and', '3', ['1', '2']); gate(c, 'and', '6', ['4', '5']); gate(c, 'and', '8', ['9', '10']); gate(c, 'and', '11', ['12', '13']); R(c, '14', '7', 1e5); } },
   '7432': { status: 'implemented', note: 'Lógica estática: limiar VCC/2, saída com 40 Ω.', build: (c) => { gate(c, 'or', '3', ['1', '2']); gate(c, 'or', '6', ['4', '5']); gate(c, 'or', '8', ['9', '10']); gate(c, 'or', '11', ['12', '13']); R(c, '14', '7', 1e5); } },
   '7404': { status: 'implemented', note: 'Lógica estática: limiar VCC/2, saída com 40 Ω.', build: (c) => { for (const [a, y] of [['1', '2'], ['3', '4'], ['5', '6'], ['9', '8'], ['11', '10'], ['13', '12']]) gate(c, 'not', y, [a]); R(c, '14', '7', 1e5); } },
-  '7474': { status: 'none', note: TIME_NOTE },
-  cd4017: { status: 'none', note: TIME_NOTE },
-  cd4060: { status: 'none', note: TIME_NOTE },
-  ne555: { status: 'none', note: 'O 555 é um circuito temporizado (oscilador/monoestável) — requer simulação transitória (Fase 4). Tratado como circuito aberto.' },
+  '7474': {
+    status: 'implemented', note: 'Dois flip-flops D disparados no flanco ascendente, com PRE̅/CLR̅ ativos baixos. Saídas com 50 Ω.',
+    build: (c) => { seq(c, 'dff2', ['1', '2', '3', '4', '13', '12', '11', '10'], ['5', '6', '8', '9'], '14', '7', [0, 0], [false, false], [0, 1, 1, 0]); R(c, '14', '7', 1e5); },
+  },
+  cd4017: {
+    status: 'implemented', note: 'Contador Johnson: avança no flanco ascendente de CLK (com CE̅ baixo); MR reinicia. CO alto nas contagens 0–4.',
+    build: (c) => { seq(c, 'cd4017', ['14', '13', '15'], ['3', '2', '4', '7', '10', '1', '5', '6', '9', '11', '12'], '16', '8', [0], [false], [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]); R(c, '16', '8', 1e5); },
+  },
+  cd4060: {
+    status: 'partial', note: 'Contador binário de 14 estágios a contar flancos descendentes em φI (pino 11). O oscilador RC interno (φO/φO̅) não é modelado: aplique um relógio externo em φI.',
+    build: (c) => { seq(c, 'cd4060', ['11', '12'], ['1', '2', '3', '4', '5', '6', '7', '13', '14', '15'], '16', '8', [0], [false], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); R(c, '16', '8', 1e5); },
+  },
+  ne555: {
+    status: 'implemented', note: 'Modelo comportamental: divisor interno 3×5 kΩ, comparadores (⅔ e ⅓ Vcc), báscula SR, saída (Vcc − 1,7 V / 0,1 V) e transístor de descarga.',
+    build: (c) => {
+      const x = c.internal();
+      R(c, '8', '5', 5000);
+      c.add({ k: 'R', a: c.node('5'), b: x, r: 5000 });
+      c.add({ k: 'R', a: x, b: c.node('1'), r: 5000 });
+      R(c, '8', '1', 2000);
+      c.add({ k: 'T555', vcc: c.node('8'), gnd: c.node('1'), trig: c.node('2'), thr: c.node('6'), ctrl: c.node('5'), x, reset: c.node('4'), out: c.node('3'), dis: c.node('7'), q: false, own: c.own('3', '7', '1') });
+    },
+  },
   adc0804: { status: 'none', note: 'Conversor com relógio e protocolo digital — Fase 5.' },
-  dac0808: { status: 'none', note: 'Previsto com a lógica digital avançada (Fase 4).' },
-  l293d: { status: 'none', note: 'Previsto com o controlo de motores (Fase 4/5).' },
+  dac0808: { status: 'none', note: 'Conversor com saída em corrente e referência — sem modelo nesta versão.' },
+  l293d: {
+    status: 'implemented', note: 'Cada canal: Y = VCC2 se A alto, GND se A baixo, com o EN respetivo alto; caso contrário Y em alta impedância. Saídas com 1,5 Ω (díodos internos não modelados).',
+    build: (c) => {
+      for (const [en, a, y] of [['1', '2', '3'], ['1', '7', '6'], ['9', '10', '11'], ['9', '15', '14']]) {
+        const rule = (invert: boolean) => ({ kind: 'and2' as const, a: c.node(a), en: c.node(en), vcc: c.node('16'), gnd: c.node('4'), invert });
+        c.add({ k: 'SW', a: c.node(y), b: c.node('8'), on: false, ron: 1.5, roff: 1e6, rule: rule(false), own: c.own(y, '8') });
+        c.add({ k: 'SW', a: c.node(y), b: c.node('4'), on: false, ron: 1.5, roff: 1e6, rule: rule(true), own: c.own(y, '4') });
+      }
+      R(c, '16', '4', 1e5);
+    },
+  },
   uln2003: {
     status: 'partial', note: 'Cada canal: interruptor OUT→GND (≈2 Ω) quando IN > 1,5 V; díodo de roda livre OUT→COM; entrada ≈2,7 kΩ.',
     build: (c) => {
@@ -222,8 +278,23 @@ export const MODELS: Record<string, Model> = {
   },
   'variable-source': { status: 'implemented', note: 'Fonte de tensão ideal.', build: (c) => c.add({ k: 'V', p: c.node('+'), n: c.node('-'), v: num(c.props.voltage, 3.3), own: c.own('+', '-') }) },
   'current-source': { status: 'implemented', note: 'Fonte de corrente ideal.', build: (c) => c.add({ k: 'I', p: c.node('+'), n: c.node('-'), i: num(c.props.current, 0.01), own: c.own('+', '-') }) },
-  'ac-source': { status: 'none', note: AC_NOTE },
-  'signal-generator': { status: 'none', note: AC_NOTE },
+  'ac-source': {
+    status: 'implemented', note: 'Fonte sinusoidal: v(t) = Vrms·√2·sin(2πft + φ), resistência interna 0,1 Ω.',
+    build: (c) => {
+      const mid = c.internal();
+      c.add({ k: 'VT', p: mid, n: c.node('2'), wave: { kind: 'sine', amp: num(c.props.vrms, 12) * Math.SQRT2, freq: num(c.props.frequency, 50), offset: 0, phase: num(c.props.phase, 0), duty: 0.5 }, own: c.own(null, '2') });
+      c.add({ k: 'R', a: mid, b: c.node('1'), r: 0.1, own: c.own(null, '1') });
+    },
+  },
+  'signal-generator': {
+    status: 'implemented', note: 'Gerador de funções com impedância de saída de 50 Ω.',
+    build: (c) => {
+      const mid = c.internal();
+      const kind = String(c.props.wave ?? 'sine') as 'sine' | 'square' | 'triangle' | 'saw';
+      c.add({ k: 'VT', p: mid, n: c.node('-'), wave: { kind, amp: num(c.props.amplitude, 1), freq: num(c.props.frequency, 1000), offset: num(c.props.offset, 0), phase: 0, duty: num(c.props.duty, 50) / 100 }, own: c.own(null, '-') });
+      c.add({ k: 'R', a: mid, b: c.node('1'), r: 50, own: c.own(null, '1') });
+    },
+  },
   'solar-panel': {
     status: 'implemented', note: 'Fonte de corrente proporcional à irradiância em paralelo com um díodo (Voc a 1000 W/m²).',
     build: (c) => {
@@ -297,7 +368,7 @@ export const MODELS: Record<string, Model> = {
 
   // ── actuators ──
   'dc-motor': {
-    status: 'partial', note: 'Modelo em vazio: carga resistiva Vnom/I_vazio. A força contra-eletromotriz dinâmica chega na Fase 4.',
+    status: 'partial', note: 'Modelo em vazio: carga resistiva Vnom/I_vazio (sem força contra-eletromotriz nem inércia).',
     build: (c) => R(c, '1', '2', num(c.props.vnom, 6) / Math.max(1e-3, num(c.props.inoload, 0.15))),
   },
   servo: { status: 'partial', note: 'Apenas o consumo em repouso (≈10 mA). O controlo PWM requer MCU (Fase 5).', build: (c) => R(c, 'VCC', 'GND', 500) },
@@ -319,7 +390,7 @@ export const MODELS: Record<string, Model> = {
     status: 'partial', note: 'Ativo: díodo + 160 Ω (≈30 mA a 5 V, só toca com a polaridade certa). Passivo: bobina de 16 Ω (precisa de sinal alternado).',
     build: (c) => (c.props.kind === 'passive' ? R(c, '+', '-', 16) : diode(c, '+', '-', { is: 1e-12, n: 1.5, rs: 160 })),
   },
-  speaker: { status: 'partial', note: 'Em DC: resistência da bobina (≈0,85·Z). Som requer sinal AC (Fase 4).', build: (c) => R(c, '1', '2', 0.85 * num(c.props.impedance, 8)) },
+  speaker: { status: 'partial', note: 'Resistência da bobina (≈0,85·Z); indutância e som não modelados.', build: (c) => R(c, '1', '2', 0.85 * num(c.props.impedance, 8)) },
   fan: { status: 'partial', note: 'Carga Vnom/Inom com díodo (ventoinhas sem escovas não funcionam com polaridade invertida).', build: (c) => diode(c, '+', '-', { is: 1e-9, n: 1.5, rs: num(c.props.vnom, 12) / Math.max(1e-3, num(c.props.inom, 0.1)) }) },
   solenoid: { status: 'implemented', note: 'Em DC: resistência da bobina. Atua acima de 60 % da corrente nominal.', build: (c) => R(c, '1', '2', Math.max(0.1, num(c.props.rcoil, 30))) },
   lamp: { status: 'partial', note: 'Resistência a quente constante (V²/P). A resistência a frio (~10× menor) não é modelada.', build: (c) => R(c, '1', '2', num(c.props.vnom, 6) ** 2 / Math.max(1e-3, num(c.props.pnom, 0.5))) },
@@ -344,6 +415,8 @@ export const MODELS: Record<string, Model> = {
       }
     },
   },
+  oscilloscope: { status: 'implemented', note: 'Entradas de 1 MΩ referidas ao terminal GND.', build: (c) => { R(c, 'CH1', 'GND', 1e6); R(c, 'CH2', 'GND', 1e6); } },
+  'frequency-counter': { status: 'implemented', note: 'Entrada de 1 MΩ.', build: (c) => R(c, 'IN', 'GND', 1e6) },
   voltmeter: { status: 'implemented', note: 'Resistência interna 10 MΩ.', build: (c) => R(c, '+', '-', 10e6) },
   ammeter: { status: 'implemented', note: 'Shunt de 10 mΩ.', build: (c) => R(c, '+', '-', 0.01) },
   wattmeter: { status: 'implemented', note: 'Shunt 10 mΩ (I+→I−) e 10 MΩ (V+–V−).', build: (c) => { R(c, 'I+', 'I-', 0.01); R(c, 'V+', 'V-', 10e6); } },
