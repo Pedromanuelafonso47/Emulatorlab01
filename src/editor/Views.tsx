@@ -3,8 +3,9 @@ import type { ComponentInstance, Point, Wire } from '@/domain/types';
 import { getBBox, getDef, valueLabel } from '@/library/registry';
 import { transformRect } from '@/domain/geometry';
 import { toPolyline } from './geometry';
+import type { VisualState } from '@/library/types';
 
-export const ComponentView = memo(function ComponentView({ inst }: { inst: ComponentInstance }) {
+export const ComponentView = memo(function ComponentView({ inst, state }: { inst: ComponentInstance; state?: VisualState }) {
   const def = getDef(inst.type);
   if (!def) {
     return (
@@ -20,12 +21,12 @@ export const ComponentView = memo(function ComponentView({ inst }: { inst: Compo
     <g transform={t} data-comp={inst.id} style={{ cursor: 'move' }} filter={def.substrate ? undefined : 'url(#f-shadow)'}>
       {/* invisible hit area so thin parts are easy to grab */}
       <rect x={bb.x} y={bb.y} width={bb.w} height={bb.h} fill="transparent" />
-      {def.render({ props: inst.props })}
+      {def.render({ props: inst.props, state })}
     </g>
   );
 });
 
-export const LabelView = memo(function LabelView({ inst }: { inst: ComponentInstance }) {
+export const LabelView = memo(function LabelView({ inst, extra }: { inst: ComponentInstance; extra?: string }) {
   const def = getDef(inst.type);
   if (!def || def.substrate) return null;
   const r = transformRect(getBBox(def, inst.props), inst, inst.rotation, inst.flip);
@@ -36,6 +37,9 @@ export const LabelView = memo(function LabelView({ inst }: { inst: ComponentInst
         {inst.label}
         {v && <tspan fontWeight={500} fill="#3b4a60"> {v}</tspan>}
       </text>
+      {extra && (
+        <text x={r.x + r.w / 2} y={r.y + r.h + 12} fontSize={4.2} textAnchor="middle" fontFamily="JetBrains Mono, Consolas, monospace" fontWeight={700} fill="#b45309" stroke="#f4f6f9" strokeWidth={1.6} paintOrder="stroke" data-export-ignore>{extra}</text>
+      )}
     </g>
   );
 });

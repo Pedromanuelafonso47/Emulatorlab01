@@ -9,6 +9,9 @@ import { formatSI, parseSI } from '@/domain/units';
 import type { ComponentInstance, Endpoint, WireStyle } from '@/domain/types';
 import { pinKey, isPinConnected } from '@/engine/netlist';
 import { Thumb } from './Thumb';
+import { modelStatus } from '@/engine/sim/models';
+import { useSim } from '@/store/sim';
+import { SimValues } from './SimValues';
 
 export function PropertiesPanel() {
   const selection = useEditor((s) => s.selection);
@@ -36,10 +39,12 @@ function ComponentProps({ inst }: { inst: ComponentInstance }) {
   const st = useEditor.getState();
   const { nl, issues } = useAnalysis();
   const pins = getPins(def, inst.props);
-  const myIssues = issues.filter((i) => i.compIds.includes(inst.id));
+  const simIssues = useSim((s) => s.interp?.issues);
+  const myIssues = [...(simIssues ?? []), ...issues].filter((i) => i.compIds.includes(inst.id));
   const cat = CATEGORIES.find((c) => c.id === def.category);
-  const statusLabel = { implemented: 'Implementado', partial: 'Parcial', none: 'Ainda não simulado' }[def.sim.status];
-  const statusColor = { implemented: 'bg-emerald-500/20 text-emerald-300', partial: 'bg-amber-500/20 text-amber-300', none: 'bg-lab-700 text-lab-300' }[def.sim.status];
+  const model = modelStatus(inst.type);
+  const statusLabel = { implemented: 'Simulado', partial: 'Simulado (simplificado)', none: 'Não simulado nesta fase' }[model.status];
+  const statusColor = { implemented: 'bg-emerald-500/20 text-emerald-300', partial: 'bg-amber-500/20 text-amber-300', none: 'bg-lab-700 text-lab-300' }[model.status];
 
   return (
     <div className="pb-8">
@@ -81,13 +86,11 @@ function ComponentProps({ inst }: { inst: ComponentInstance }) {
 
       <Section title="Simulação" icon={<Zap className="h-3.5 w-3.5" />}>
         <div className="flex items-center gap-2 text-[12px]">
-          <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${statusColor}`}>{statusLabel}</span>
-          <span className="font-mono text-lab-400">{def.sim.model}</span>
+          <span className={'rounded px-1.5 py-0.5 text-[11px] font-medium ' + statusColor}>{statusLabel}</span>
+          <span className="text-lab-400">modelo DC</span>
         </div>
-        {def.sim.note && <div className="mt-1.5 text-[12px] text-lab-400">{def.sim.note}</div>}
-        <div className="mt-2 rounded border border-dashed border-lab-600 px-2 py-1.5 text-[11.5px] text-lab-400">
-          Tensões e correntes: o motor de simulação DC chega na Fase 2. Nenhum valor elétrico é mostrado antes de ser calculado.
-        </div>
+        {model.note && <div className="mt-1.5 text-[12px] leading-snug text-lab-400">{model.note}</div>}
+        <SimValues inst={inst} />
       </Section>
 
       <Section title={`Pinos (${pins.length})`} icon={<Cpu className="h-3.5 w-3.5" />}>

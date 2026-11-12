@@ -12,6 +12,7 @@ import { LabDefs } from '@/library/render/primitives';
 import { lastProjectId, loadProject, saveProject } from '@/persistence/projects';
 import { EXAMPLES } from '@/persistence/examples';
 import { PanelBottom } from 'lucide-react';
+import { useSim } from '@/store/sim';
 
 let booted = false;
 function useBootstrap() {
@@ -21,6 +22,7 @@ function useBootstrap() {
     const st = useEditor.getState();
     const exParam = new URLSearchParams(location.search).get('example');
     const ex = exParam && EXAMPLES.find((e) => e.id === exParam);
+    if (new URLSearchParams(location.search).get('sim') === '1') setTimeout(() => { useSim.getState().start(); useEditor.getState().set({ bottomOpen: true, bottomTab: 'sim' }); }, 100);
     if (ex) { st.loadDocument(ex.build()); st.log('info', 'Exemplo aberto: ' + ex.name); setTimeout(() => useEditor.getState().fitToContent(canvasSize.w, canvasSize.h), 50); return; }
     const id = lastProjectId();
     const p = id ? loadProject(id) : null;

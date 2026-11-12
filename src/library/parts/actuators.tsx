@@ -166,13 +166,14 @@ registerComponent({
   pins: two(0, 'Positivo (+)', 'Negativo (−)', true),
   props: [sel('kind', 'Tipo', 'active', [['active', 'Ativo (oscilador interno)'], ['passive', 'Passivo']]), num('frequency', 'Frequência (ativo)', 2300, 'Hz')],
   valueLabel: (p) => (p.kind === 'active' ? 'ativo' : 'passivo'),
-  render: () => (
+  render: ({ state }) => (
     <g>
       <Lead x1={-10} y1={-4} x2={-10} y2={0} /><Lead x1={10} y1={-4} x2={10} y2={0} />
       <circle cx={0} cy={-15} r={14.5} fill="url(#g-black)" stroke="#000" strokeWidth={0.5} />
       <circle cx={0} cy={-15} r={11} fill="none" stroke="#3a3d42" strokeWidth={0.6} />
       <circle cx={0} cy={-15} r={2.6} fill="#050506" />
       <Txt x={-7} y={-22} size={4} fill="#d9d9d9" weight={800}>+</Txt>
+      {state?.sounding ? [18, 23, 28].map((r) => <path key={r} d={`M${r * 0.7} ${-15 - r * 0.7} A${r} ${r} 0 0 1 ${r * 0.7} ${-15 + r * 0.7}`} fill="none" stroke="#f59e0b" strokeWidth={1} opacity={0.8} />) : null}
     </g>
   ),
   sim: sim('buzzer'),

@@ -104,6 +104,46 @@ export const EXAMPLES: Example[] = [
     },
   },
   {
+    id: 'npn-button',
+    name: 'Transístor NPN como interruptor (com botão)',
+    description: 'Premir o botão injeta ≈0,8 mA na base (Rb = 10 kΩ); o 2N2222A satura e acende o LED. Inicie a simulação e prima o botão no laboratório.',
+    build: () => {
+      const b = new Builder('Transístor como interruptor');
+      const bat = b.add('battery-9v', 'BT1', -160, 0);
+      const sw = b.add('push-button', 'SW1', -80, -60);
+      const rb = b.add('resistor', 'R1', 0, -70, { resistance: 10000 });
+      const rl = b.add('resistor', 'R2', 40, -150, { resistance: 470 });
+      const q = b.add('bjt-npn', 'Q1', 60, -40, { model: '2N2222A' });
+      const led = b.add('led', 'D1', 110, -120, { color: 'yellow' });
+      b.wire([bat, '+'], [rl, '1'], '#e53935', [{ x: -170, y: -150 }]);
+      b.wire([bat, '+'], [sw, '1A'], '#e53935', [{ x: -170, y: -70 }]);
+      b.wire([sw, '2A'], [rb, '1'], '#1e88e5');
+      b.wire([rb, '2'], [q, 'B'], '#1e88e5', [{ x: 60, y: -70 }]);
+      b.wire([rl, '2'], [led, 'A'], '#fb8c00', [{ x: 110, y: -150 }]);
+      b.wire([led, 'K'], [q, 'C'], '#fb8c00', [{ x: 120, y: -35 }, { x: 70, y: -35 }]);
+      b.wire([q, 'E'], [bat, '-'], '#212121', [{ x: 50, y: 20 }, { x: -150, y: 20 }]);
+      return b.doc;
+    },
+  },
+  {
+    id: 'reg-7805',
+    name: 'Fonte regulada 5 V com 7805',
+    description: 'Bateria de 9 V → regulador 7805 → 5 V estáveis → LED com 330 Ω. Experimente baixar a tensão da bateria abaixo de 7 V para ver o dropout.',
+    build: () => {
+      const b = new Builder('Fonte regulada 7805');
+      const bat = b.add('battery-9v', 'BT1', -140, 0);
+      const u = b.add('lm7805', 'U1', -40, -40);
+      const r = b.add('resistor', 'R1', 40, -60, { resistance: 330 });
+      const led = b.add('led', 'D1', 90, -60, { color: 'green' });
+      b.wire([bat, '+'], [u, 'IN'], '#e53935', [{ x: -150, y: 10 }, { x: -50, y: 10 }]);
+      b.wire([u, 'GND'], [bat, '-'], '#212121', [{ x: -40, y: 40 }, { x: -130, y: 40 }]);
+      b.wire([u, 'OUT'], [r, '1'], '#fdd835', [{ x: -30, y: 0 }, { x: 20, y: 0 }]);
+      b.wire([r, '2'], [led, 'A'], '#fdd835', [{ x: 90, y: -60 }]);
+      b.wire([led, 'K'], [bat, '-'], '#212121', [{ x: 100, y: 50 }, { x: -130, y: 50 }]);
+      return b.doc;
+    },
+  },
+  {
     id: 'catalog',
     name: 'Catálogo visual de componentes',
     description: 'Todos os componentes da biblioteca dispostos numa grelha — útil para explorar a biblioteca e ver a disposição real dos pinos.',

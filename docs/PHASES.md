@@ -23,8 +23,25 @@
 - Interação direta com componentes durante a simulação (premir o botão no canvas) → Fase 2. Por agora usa-se o painel de propriedades.
 - Rotas automáticas de fios: não há (os fios são desenhados à mão, como no Tinkercad).
 
-## Fase 2 — Modelo elétrico + motor DC
-MNA em Web Worker; resistores, fontes, interruptores, díodos/LEDs (Newton-Raphson), BJT/MOSFET simples; tensões de nó, correntes, potência, deteção de nós flutuantes/matriz singular; LED acende pela corrente calculada; avisos quantitativos (sobrecorrente real, P > P nominal).
+## Fase 2 — Modelo elétrico + motor DC ✅ (implementada)
+
+**Arquitetura:**  (modelo de cada componente) →  (documento + netlist → elementos) →  (MNA + Newton-Raphson, puro, corre num Web Worker) →  (valores por pino, estados visuais, avisos). A sessão () recalcula a cada alteração enquanto a simulação está ativa; se o Worker falhar, resolve na thread principal.
+
+**Solver:** análise nodal modificada; díodos/LEDs (Shockley + resistência série + rutura Zener), BJT (Ebers–Moll), MOSFET/JFET (lei quadrática), limitação de junção estilo SPICE (pnjlim), gmin stepping e source stepping; elementos com modos discretos (saturação de amp-ops, dropout de reguladores, níveis lógicos, fonte CV/CC, relés, fusíveis); deteção de nós flutuantes e de sistemas sem solução (laços de fontes).
+
+**Componentes simulados (DC):** resistor, potenciómetro (linear/log), NTC, PTC (aprox.), LDR, fusível, condensadores (abertos em DC), indutores (resistência DC), díodos, Zener, Schottky, LEDs (6 cores), ponte retificadora, NPN/PNP, MOSFET N/P, JFET, LM358/LM324/LM741, 74HC00/08/32/04, ULN2003, 7805/7812/LM317, pilhas/baterias com resistência interna, fonte de bancada CV/CC, fonte de tensão e de corrente, painel solar, LM35, PIR, sensor IR, humidade do solo, MQ-2, módulo LDR, ACS712, sensor de tensão, placa de chuva, motores/ventoinha/solenoide/lâmpada (cargas), relé, buzzer, display de 7 segmentos, Arduino/ESP/Pico (rails de alimentação USB). Interruptores, botões e breadboards via netlist.
+
+**Interface:** botão Simular/Parar; LED acende pela corrente calculada, motores rodam, relé/solenoide/buzzer/fusível mostram o estado; tensão e corrente em cada etiqueta (componentes de 2 terminais); tooltip com V e I em qualquer pino ou furo; painel de propriedades com V/I/P por pino; separador “Simulação” com tensões dos nós e tabela de correntes e potências; botões, interruptores, PIR e sensor IR operáveis com o rato durante a simulação.
+
+**Avisos quantitativos (com valores reais):** sobrecorrente no LED, potência acima da nominal (resistores, Zener, transístores, reguladores), condensador eletrolítico invertido/sobretensão, corrente excessiva da bateria, bateria a ser carregada, fonte em limitação CC, regulador em dropout, corrente de base excessiva, fusível queimado, consumo excessivo no pino 5 V do Arduino, nós flutuantes.
+
+**Testes:** 23 testes do simulador contra soluções analíticas (divisor, resistência interna, LED, díodo, Zener, BJT saturado/ativo, PNP, MOSFET, 7805 com dropout, LM317, amp-op seguidor/comparador, fonte CC, NAND, ponte, relé, fusível, nó flutuante, Arduino 5 V, exemplos). Total: 42 testes.
+
+**Ainda NÃO implementado (assinalado na interface, nunca simulado de forma falsa)**
+- Comportamento temporal: carga/descarga de condensadores, indutores, 555, flip-flops/contadores, TRIAC/SCR, fontes AC e gerador de sinais, transformador → Fase 4. Estes componentes aparecem como “não simulado” e são tratados como circuito aberto.
+- Pinos de E/S dos microcontroladores (sem código) → Fase 5. DHT, HC-SR04, encoder, servo e passo: apenas consumo.
+- Força contra-eletromotriz dos motores e resistência a frio das lâmpadas.
+- Temperatura dos componentes (os avisos de potência são por limiar, sem modelo térmico).
 
 ## Fase 3 — Instrumentos e análise
 Multímetro com pontas de prova, voltímetro/amperímetro/wattímetro, análise explicada do circuito (assistente baseado no netlist + resultados), mais regras ERC para a breadboard.

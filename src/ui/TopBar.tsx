@@ -4,6 +4,7 @@ import {
   MousePointer2, Spline, Hand, PanelLeft, PanelRight, PanelBottom, ChevronDown,
 } from 'lucide-react';
 import { useEditor, WIRE_COLORS } from '@/store/editor';
+import { useSim } from '@/store/sim';
 import { canvasSize, canvasWorldGroup } from '@/editor/Canvas';
 import { exportBOM, exportJSON, exportPNG, exportSVG } from '@/persistence/export';
 import { saveProject, validateDocument } from '@/persistence/projects';
@@ -41,7 +42,7 @@ export function TopBar({ onOpenProjects }: { onOpenProjects: () => void }) {
         <svg viewBox="0 0 32 32" className="h-7 w-7"><rect width="32" height="32" rx="7" fill="#1b2230" /><path d="M4 16h6l3-7 6 14 3-7h6" fill="none" stroke="#2f9bff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
         <div className="hidden leading-tight sm:block">
           <div className="text-[13px] font-bold tracking-wide text-white">ElectroLab</div>
-          <div className="text-[10px] text-lab-400">Fase 1 · Editor</div>
+          <div className="text-[10px] text-lab-400">Fase 2 · Simulação DC</div>
         </div>
       </div>
       <ProjectName />
@@ -71,11 +72,7 @@ export function TopBar({ onOpenProjects }: { onOpenProjects: () => void }) {
 
       <div className="flex-1" />
 
-      <button
-        onClick={() => st.notify('Motor de simulação ainda não implementado (Fase 2). A verificação topológica já está ativa no separador “Erros e avisos”.', 'warn')}
-        className="flex items-center gap-1.5 rounded-md bg-emerald-600/90 px-3 py-1.5 text-[12.5px] font-semibold text-white shadow hover:bg-emerald-500" title="Executar simulação (disponível na Fase 2)"
-      ><Play className="h-4 w-4" fill="currentColor" /><span className="hidden lg:inline">Simular</span></button>
-      <button disabled className="flex items-center gap-1.5 rounded-md bg-lab-800 px-2.5 py-1.5 text-[12.5px] text-lab-500" title="Parar simulação"><Square className="h-3.5 w-3.5" fill="currentColor" /></button>
+      <SimButtons />
 
       <div className="relative">
         <button onClick={() => setExportOpen((o) => !o)} className="ml-1 flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[12.5px] text-lab-200 hover:bg-lab-800"><Download className="h-4 w-4" /><span className="hidden lg:inline">Exportar</span><ChevronDown className="h-3 w-3" /></button>
@@ -87,6 +84,33 @@ export function TopBar({ onOpenProjects }: { onOpenProjects: () => void }) {
       <Btn title="Painel inferior" active={st.bottomOpen} onClick={() => st.set({ bottomOpen: !st.bottomOpen })}><PanelBottom /></Btn>
       <Btn title="Propriedades" active={st.rightOpen} onClick={() => st.set({ rightOpen: !st.rightOpen })}><PanelRight /></Btn>
     </header>
+  );
+}
+
+function SimButtons() {
+  const running = useSim((s) => s.running);
+  const start = useSim((s) => s.start);
+  const stop = useSim((s) => s.stop);
+  const interp = useSim((s) => s.interp);
+  const errors = interp?.issues.filter((i) => i.severity === 'error').length ?? 0;
+  return (
+    <>
+      {running && (
+        <span className="mr-1 hidden items-center gap-1.5 text-[11.5px] text-emerald-300 md:flex">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />DC em tempo real
+          {errors > 0 && <span className="rounded bg-red-500/90 px-1.5 text-[10.5px] font-bold text-white">{errors} erro{errors > 1 ? 's' : ''}</span>}
+        </span>
+      )}
+      <button
+        onClick={() => { if (!running) { start(); useEditor.getState().set({ bottomOpen: true, bottomTab: 'sim' }); } }}
+        className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-semibold text-white shadow ${running ? 'bg-emerald-800/60 text-emerald-200' : 'bg-emerald-600/90 hover:bg-emerald-500'}`}
+        title="Executar simulação DC (o circuito é recalculado a cada alteração)"
+      ><Play className="h-4 w-4" fill="currentColor" /><span className="hidden lg:inline">{running ? 'A simular' : 'Simular'}</span></button>
+      <button onClick={stop} disabled={!running}
+        className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12.5px] ${running ? 'bg-red-600/90 text-white hover:bg-red-500' : 'bg-lab-800 text-lab-500'}`} title="Parar simulação">
+        <Square className="h-3.5 w-3.5" fill="currentColor" />
+      </button>
+    </>
   );
 }
 

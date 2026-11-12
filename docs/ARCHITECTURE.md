@@ -1,7 +1,7 @@
 # ElectroLab — Arquitetura do Sistema
 
 > Documento vivo. Descreve a arquitetura-alvo completa (Fases 1–7) e assinala o que já existe.
-> Estado atual: **Fase 1 implementada** (ver `docs/PHASES.md`).
+> Estado atual: **Fases 1 e 2 implementadas** (ver `docs/PHASES.md`).
 
 ---
 

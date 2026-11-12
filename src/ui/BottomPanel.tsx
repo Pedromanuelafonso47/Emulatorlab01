@@ -5,10 +5,20 @@ import { useAnalysis } from '@/store/derived';
 import { getDef, getPins } from '@/library/registry';
 import { compRect } from '@/store/editor';
 import { canvasSize } from '@/editor/Canvas';
+import { useSim } from '@/store/sim';
+import { SimTab } from './SimTab';
+import type { Issue } from '@/engine/erc';
+
+function useAllIssues(): Issue[] {
+  const { issues } = useAnalysis();
+  const sim = useSim((s) => s.interp?.issues);
+  return sim ? [...sim.filter((i) => i.severity !== 'info'), ...issues, ...sim.filter((i) => i.severity === 'info')] : issues;
+}
 
 export function BottomPanel() {
   const tab = useEditor((s) => s.bottomTab);
-  const { issues, nl } = useAnalysis();
+  const { nl } = useAnalysis();
+  const issues = useAllIssues();
   const set = useEditor((s) => s.set);
   const errors = issues.filter((i) => i.severity === 'error').length;
   const warns = issues.filter((i) => i.severity === 'warning').length;
@@ -35,8 +45,8 @@ export function BottomPanel() {
         {tab === 'console' && <ConsoleTab />}
         {tab === 'problems' && <ProblemsTab />}
         {tab === 'netlist' && <NetlistTab />}
-        {tab === 'measure' && <Placeholder title="Instrumentos de medição — Fase 3" text="Multímetro (V DC/AC, A, Ω, continuidade, díodo), voltímetro, amperímetro e wattímetro com pontas de prova colocadas no circuito. Os valores só aparecerão quando forem calculados pelo motor de simulação." />}
-        {tab === 'sim' && <Placeholder title="Motor de simulação — Fase 2" text="Análise nodal modificada (MNA) com Newton-Raphson para díodos/LEDs/transístores, num Web Worker. Nesta fase já está disponível a extração do netlist (separador “Nós”) e a verificação topológica (curto-circuitos, polaridade invertida, LED sem resistência, componentes em curto na breadboard)." />}
+        {tab === 'measure' && <Placeholder title="Instrumentos de medição — Fase 3" text="Multímetro (V DC/AC, A, Ω, continuidade, díodo), voltímetro, amperímetro e wattímetro com pontas de prova colocadas no circuito. Enquanto isso, os valores calculados já estão disponíveis: passe o rato sobre um pino/furo, veja o separador “Simulação” ou o painel de propriedades do componente." />}
+        {tab === 'sim' && <SimTab />}
       </div>
     </div>
   );
@@ -72,7 +82,7 @@ function focusComps(ids: string[]) {
 }
 
 function ProblemsTab() {
-  const { issues } = useAnalysis();
+  const issues = useAllIssues();
   const set = useEditor((s) => s.set);
   if (!issues.length) return <div className="flex items-center gap-2 px-3 py-3 font-sans text-[12.5px] text-emerald-300"><CheckCircle2 className="h-4 w-4" />Sem problemas topológicos detetados.</div>;
   return (

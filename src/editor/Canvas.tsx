@@ -8,6 +8,37 @@ import { pinKey } from '@/engine/netlist';
 import { collectPins, hitPin, hitWire, toPolyline, wirePath, type PinHit } from './geometry';
 import { ComponentView, LabelView, WireView } from './Views';
 import { ContextMenu, type MenuState } from './ContextMenu';
+import { useSim } from '@/store/sim';
+import { formatSI } from '@/domain/units';
+import type { ComponentInstance } from '@/domain/types';
+import type { VisualState } from '@/library/types';
+
+/** Components the user can operate with the mouse while the simulation runs. */
+function operate(inst: ComponentInstance, down: boolean): boolean {
+  const st = useEditor.getState();
+  const set = (patch: Record<string, string | number | boolean>) => st.update((d) => { Object.assign(d.components[inst.id].props, patch); }, false);
+  switch (inst.type) {
+    case 'push-button': set({ pressed: down }); return true;
+    case 'toggle-switch': if (down) set({ closed: !inst.props.closed }); return true;
+    case 'slide-switch': if (down) set({ position: inst.props.position === 'B' ? 'A' : 'B' }); return true;
+    case 'pir': if (down) set({ motion: !inst.props.motion }); return true;
+    case 'ir-proximity': if (down) set({ detected: !inst.props.detected }); return true;
+    default: return false;
+  }
+}
+
+function useAnimTime(active: boolean) {
+  const [t, setT] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    let raf = 0;
+    const t0 = performance.now();
+    const loop = (now: number) => { setT((now - t0) / 1000); raf = requestAnimationFrame(loop); };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [active]);
+  return t;
+}
 
 type Gesture =
   | { kind: 'pan'; sx: number; sy: number; vx: number; vy: number; button: number; moved: boolean; target: Element; cx: number; cy: number }
@@ -16,7 +47,8 @@ type Gesture =
   | { kind: 'pendingPin'; pin: PinHit; sx: number; sy: number; additive: boolean }
   | { kind: 'wirePoint'; wireId: string; index: number; moved: boolean }
   | { kind: 'junction'; id: string }
-  | { kind: 'pinch'; d0: number; z0: number; mid: Point; vx: number; vy: number };
+  | { kind: 'pinch'; d0: number; z0: number; mid: Point; vx: number; vy: number }
+  | { kind: 'press'; id: string };
 
 const DRAG_THRESHOLD = 4;
 export let canvasWorldGroup: SVGGElement | null = null;
@@ -40,6 +72,25 @@ export function Canvas() {
   const hoveredNet = useEditor((s) => s.hoveredNet);
   const highlightComps = useEditor((s) => s.highlightComps);
   const { nl } = useAnalysis();
+  const interp = useSim((s) => s.interp);
+  const simRunning = useSim((s) => s.running);
+  const animated = !!interp && Object.values(interp.states).some((st) => st.speed);
+  const animT = useAnimTime(animated);
+  const liveLine = (id: string): string | undefined => {
+    const cv = interp?.comps[id];
+    if (!cv || !cv.simulated) return undefined;
+    const pins = Object.values(cv.pins);
+    if (pins.length !== 2) return undefined;
+    const [a, b] = pins;
+    const i = Math.abs(a.i ?? 0);
+    const vtxt = a.v == null || b.v == null ? '?' : formatSI(Math.abs(a.v - b.v), 'V', 3);
+    return vtxt + ' · ' + formatSI(i < 1e-9 ? 0 : i, 'A', 3);
+  };
+  const stateOf = (id: string): VisualState | undefined => {
+    const st = interp?.states[id];
+    if (st?.speed) return { ...st, angle: (animT * 900 * (st.speed as number)) % 360 };
+    return st;
+  };
 
   const [cursor, setCursor] = useState<Point>({ x: 0, y: 0 });
   const [hover, setHover] = useState<PinHit | null>(null);
@@ -200,6 +251,10 @@ export function Canvas() {
     const cEl = target.closest('[data-comp]');
     if (cEl) {
       const id = cEl.getAttribute('data-comp')!;
+      if (useSim.getState().running && !e.shiftKey) {
+        const inst = st.doc.components[id];
+        if (inst && operate(inst, true)) { gesture.current = { kind: 'press', id }; return; }
+      }
       if (e.shiftKey || e.ctrlKey || e.metaKey) st.toggleComp(id);
       else if (!st.selection.comps.includes(id)) st.select({ comps: [id] });
       st.beginGesture();
@@ -288,6 +343,7 @@ export function Canvas() {
       }
     }
     if (g.kind === 'wirePoint' || g.kind === 'junction') st.endGesture();
+    if (g.kind === 'press') { const inst = st.doc.components[g.id]; if (inst) operate(inst, false); }
     if (g.kind === 'marquee') {
       const r = marquee;
       setMarquee(null);
@@ -420,7 +476,7 @@ export function Canvas() {
             ))}
           </g>
 
-          {devices.map((c) => <ComponentView key={c.id} inst={c} />)}
+          {devices.map((c) => <ComponentView key={c.id} inst={c} state={stateOf(c.id)} />)}
 
           {Object.values(doc.wires).map((w) => {
             const pts = wirePath(doc, w);
@@ -439,7 +495,7 @@ export function Canvas() {
             );
           })}
 
-          {showLabels && devices.map((c) => <LabelView key={c.id} inst={c} />)}
+          {showLabels && devices.map((c) => <LabelView key={c.id} inst={c} extra={liveLine(c.id)} />)}
 
           <g data-export-ignore>
             {/* selection outlines */}
@@ -475,7 +531,8 @@ export function Canvas() {
       </svg>
 
       {hover && !gesture.current && (
-        <PinTooltip pin={hover} view={view} netName={hoverNetId ? nl.netById.get(hoverNetId)?.name : undefined} label={doc.components[hover.compId]?.label ?? ''} />
+        <PinTooltip pin={hover} view={view} netName={hoverNetId ? nl.netById.get(hoverNetId)?.name : undefined} label={doc.components[hover.compId]?.label ?? ''}
+          sim={simRunning ? { v: hoverNetId ? interp?.netVoltage.get(hoverNetId) : undefined, i: interp?.comps[hover.compId]?.pins[hover.pinId]?.i, substrate: hover.substrate } : undefined} />
       )}
       {drawing && (
         <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-md bg-lab-900/90 px-3 py-1.5 text-xs text-lab-100 shadow-lg ring-1 ring-lab-600">
@@ -492,7 +549,7 @@ function orthoFrom(a: Point, b: Point): Point {
   return Math.abs(b.x - a.x) > Math.abs(b.y - a.y) ? { x: b.x, y: a.y } : { x: a.x, y: b.y };
 }
 
-function PinTooltip({ pin, view, netName, label }: { pin: PinHit; view: { x: number; y: number; zoom: number }; netName?: string; label: string }) {
+function PinTooltip({ pin, view, netName, label, sim }: { pin: PinHit; view: { x: number; y: number; zoom: number }; netName?: string; label: string; sim?: { v?: number | null; i?: number | null; substrate: boolean } }) {
   const x = pin.x * view.zoom + view.x, y = pin.y * view.zoom + view.y;
   const def = getDef(useEditor.getState().doc.components[pin.compId]?.type ?? '');
   const pd = def && (Array.isArray(def.pins) ? def.pins : def.pins(useEditor.getState().doc.components[pin.compId].props)).find((p) => p.id === pin.pinId);
@@ -502,6 +559,12 @@ function PinTooltip({ pin, view, netName, label }: { pin: PinHit; view: { x: num
       <div className="text-lab-300">
         {pd?.description ? `${pd.description} · ` : ''}{pd?.polarity ? `polaridade ${pd.polarity === '+' ? 'positiva' : 'negativa'} · ` : ''}nó <span className="font-mono text-emerald-300">{netName ?? '—'}</span>
       </div>
+      {sim && (
+        <div className="mt-1 flex gap-3 font-mono text-[12px]">
+          <span className="text-amber-300">V = {sim.v === undefined ? '—' : sim.v === null ? 'flutuante' : formatSI(sim.v, 'V', 4)}</span>
+          {!sim.substrate && <span className="text-sky-300">I = {sim.i == null ? '—' : formatSI(sim.i, 'A', 3)} {sim.i ? (sim.i > 0 ? '(entra)' : '(sai)') : ''}</span>}
+        </div>
+      )}
     </div>
   );
 }

@@ -4,7 +4,8 @@ import { HeaderPin, HeaderSocket, MountHole, Smd, SmdLed, Txt } from '../render/
 import { guessRole } from '../render/packages';
 import { registerDip } from './ics';
 import type { PinDef, PinRole } from '../types';
-import { sim } from './common';
+import { bool } from './common';
+const USB_PROP = [bool('usbPower', 'Alimentada por USB (5 V)', true, { hint: 'Os pinos 5 V / 3,3 V passam a fornecer tensão na simulação.' })];
 
 interface RawPin { name: string; x: number; y: number; role?: PinRole; description?: string }
 
@@ -57,7 +58,7 @@ function PinLabels({ pins, side, size = 3, color = '#f1f5f9' }: { pins: PinDef[]
     description: 'Placa com ATmega328P a 16 MHz: 14 E/S digitais (6 PWM), 6 entradas analógicas, USB.',
     tags: ['arduino', 'uno', 'atmega328p', 'microcontrolador', 'avr'],
     bbox: { x: -138, y: -101, w: 279, h: 212 },
-    pins, internalConnections: internal,
+    pins, internalConnections: internal, props: USB_PROP,
     render: ({ state }) => (
       <g>
         <path d="M-128 -100 H128 L134 -94 V-60 L140 -54 V80 L134 86 V104 L128 110 H-128 Q-130 110 -130 108 V-98 Q-130 -100 -128 -100 Z" fill="url(#g-pcb-teal)" stroke="#063c44" strokeWidth={0.8} />
@@ -134,7 +135,7 @@ function PinLabels({ pins, side, size = 3, color = '#f1f5f9' }: { pins: PinDef[]
     description: 'ATmega2560: 54 E/S digitais (15 PWM), 16 entradas analógicas, 4 portas série.',
     tags: ['arduino', 'mega', 'atmega2560', 'microcontrolador'],
     bbox: { x: -208, y: -101, w: 402, h: 212 },
-    pins, internalConnections: internal,
+    pins, internalConnections: internal, props: USB_PROP,
     render: () => (
       <g>
         <path d="M-198 -100 H186 L192 -94 V104 L186 110 H-198 Q-200 110 -200 108 V-98 Q-200 -100 -198 -100 Z" fill="url(#g-pcb-teal)" stroke="#063c44" strokeWidth={0.8} />
@@ -175,7 +176,7 @@ function dualRow(d: DualRow) {
   registerComponent({
     type: d.type, name: d.name, category: 'mcu', subcategory: d.subcategory, prefix: 'U', description: d.description, tags: d.tags,
     bbox: { x: bx - 8, y: by, w: d.w + 16, h: d.h },
-    pins, internalConnections: internal,
+    pins, internalConnections: internal, props: USB_PROP,
     render: () => (
       <g>
         <rect x={bx} y={by} width={d.w} height={d.h} rx={3} fill={`url(#g-pcb-${d.pcb})`} stroke="#0008" strokeWidth={0.6} />
@@ -284,4 +285,3 @@ registerDip({
   pins: ['RA2/AN2', 'RA3/AN3', 'RA4/T0CKI', 'RA5/MCLR̅', { name: 'VSS', role: 'ground' }, 'RB0/INT', 'RB1/RX', 'RB2/TX', 'RB3/CCP1', 'RB4/PGM', 'RB5', 'RB6/PGC', 'RB7/PGD', { name: 'VDD', role: 'power' }, 'RA6/OSC2', 'RA7/OSC1', 'RA0/AN0', 'RA1/AN1'],
 });
 
-void sim;

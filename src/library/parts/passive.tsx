@@ -343,11 +343,13 @@ registerComponent({
   pins: twoPins(),
   props: [num('rating', 'Corrente nominal', 0.5, 'A'), sel('speed', 'Tipo', 'fast', [['fast', 'Rápido (F)'], ['slow', 'Lento (T)']])],
   valueLabel: (p) => `${p.speed === 'slow' ? 'T' : 'F'}${si(p.rating, 'A')}`,
-  render: ({ props }) => (
+  render: ({ props, state }) => (
     <g>
       <Lead x1={-20} y1={0} x2={-14} y2={0} /><Lead x1={14} y1={0} x2={20} y2={0} />
       <rect x={-9} y={-3.6} width={18} height={7.2} fill="url(#g-glass)" stroke="#8aa0b0" strokeWidth={0.3} />
-      <path d="M-9 0 Q-4 -1.5 0 0 T9 0" fill="none" stroke="#b8bec6" strokeWidth={0.5} />
+      {state?.blown
+        ? <><path d="M-9 0 Q-6 -1 -3 0 M3 0 Q6 1 9 0" fill="none" stroke="#b8bec6" strokeWidth={0.5} /><rect x={-6} y={-3.2} width={12} height={6.4} fill="#3a2a1a" opacity={0.55} /></>
+        : <path d="M-9 0 Q-4 -1.5 0 0 T9 0" fill="none" stroke="#b8bec6" strokeWidth={0.5} />}
       <rect x={-15} y={-4.2} width={6.5} height={8.4} rx={0.8} fill="url(#g-metal)" stroke="#6f7782" strokeWidth={0.3} />
       <rect x={8.5} y={-4.2} width={6.5} height={8.4} rx={0.8} fill="url(#g-metal)" stroke="#6f7782" strokeWidth={0.3} />
       <Txt x={-11.7} y={0} size={2} fill="#333">{`${props.speed === 'slow' ? 'T' : 'F'}${formatSI(Number(props.rating), 'A', 2).replace(' ', '')}`}</Txt>
