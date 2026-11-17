@@ -8,7 +8,7 @@
 | 2 Modelo DC | ✅ | — |
 | 3 Instrumentos | ✅ | — |
 | 4 Transitório e AC | ✅ | — (modelos de cada componente estão em `engine/sim/models.ts`; a biblioteca lê o estado deles) |
-| 5 Microcontroladores | 🟡 parcial | **Uno e Nano executam o programa compilado no emulador ATmega328P** (avr8js), com o `arduino-cli` (serviço local `tools/compile-server.mjs`, `npm run compile-service`). Se o serviço não estiver a correr ou a sketch precisar de uma biblioteca que o compilador não tem (ex.: DHT), a placa corre no interpretador próprio. **Mega, ESP32, ESP8266 e Pico:** Mega e ESP32 com interpretador; Pico (rp2040js) e ESP8266 sem execução. Sem PWM/temporização de hardware no interpretador. |
+| 5 Microcontroladores | 🟡 em curso | **Uno, Nano e Mega** executam o programa compilado no emulador (avr8js: ATmega328P e ATmega2560, pinos do núcleo oficial do Arduino). Compilação pelo `arduino-cli` no serviço `tools/compile-server.mjs` (`npm run compile-service`; imagem e guia em `docs/HOSTING.md`). Quando o serviço não responde, ou a sketch precisa de uma biblioteca que o compilador não tem (ex.: DHT), a placa corre no interpretador próprio. **ESP32 e ESP8266:** usam o CPU Xtensa, para o qual não há emulador JavaScript fiável; ficam no interpretador. **Pico:** ver estado no commit mais recente. |
 | 6 Aprender | 🟡 parcial | 9 aulas em 4 níveis, passos validados contra o netlist; os pinos citados são verificados contra a biblioteca. Falta mais conteúdo. |
 | 7 Plataforma | 🟡 código pronto, não verificado | Cliente Supabase (`src/cloud/supabase.ts`), esquema com RLS (`supabase/schema.sql`) e secção Nuvem. Testado só contra servidor simulado. Falta um projeto Supabase real e as suas credenciais. |
 

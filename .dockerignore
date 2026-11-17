@@ -1,0 +1,9 @@
+node_modules
+dist
+tools/bin
+tools/work
+tools/arduino-cli.zip
+tools/arduino-cli.yaml
+.env
+.env.*
+.git

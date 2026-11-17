@@ -11,6 +11,7 @@ export type CompileOutcome =
 const FQBN: Record<string, string> = {
   'arduino-uno': 'arduino:avr:uno',
   'arduino-nano': 'arduino:avr:nano',
+  'arduino-mega': 'arduino:avr:mega',
 };
 
 const SERVICE = (import.meta.env.VITE_COMPILE_URL as string | undefined) ?? 'http://127.0.0.1:8787';

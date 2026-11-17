@@ -13,7 +13,7 @@ import type { Element, SimCircuit } from '@/engine/sim/types';
 import { CONSTANTS, createInterp, RunError, type McuIO, type NativeObj } from './lang/interp';
 import { CompileError } from './lang/parser';
 import { BOARDS, pinNameFor } from './boards';
-import { AvrMachine } from './avr/machine';
+import { AvrMachine, deviceForBoard } from './avr/machine';
 
 export interface McuPinRef { node: number; pwm: boolean }   // node −1 = pin not wired to any net
 /** A DHT sensor wired to a board pin: its environment values and where its supply is connected. */
@@ -157,7 +157,7 @@ export class McuHost {
         rt.error = `Erro de compilação na linha ${e.line}: ${e.message}`;
         this.events.push({ compId: prog.compId, kind: 'error', text: rt.error });
       } else if (prog.hex) {
-        try { rt.avr = new AvrMachine(prog.hex); } catch (e) {
+        try { rt.avr = new AvrMachine(prog.hex, deviceForBoard(prog.board) ?? undefined); } catch (e) {
           rt.error = `Não foi possível carregar o programa: ${(e as Error).message}`;
           this.events.push({ compId: prog.compId, kind: 'error', text: rt.error });
         }

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { AvrMachine, parseIntelHex, arduinoPin } from './machine';
+import { AvrMachine, parseIntelHex } from './machine';
+import { ATMEGA328P, ATMEGA2560 } from './devices';
 
 const fixture = (name: string) => readFileSync(join(__dirname, 'fixtures', name), 'utf8');
 
@@ -18,13 +19,20 @@ describe('Intel HEX loader', () => {
 });
 
 describe('pin names', () => {
-  it('maps D0–D13 to their ports and A0–A5 to PORTC', () => {
-    expect(arduinoPin('D0')).toEqual({ port: 'D', bit: 0 });
-    expect(arduinoPin('D8')).toEqual({ port: 'B', bit: 0 });
-    expect(arduinoPin('D13')).toEqual({ port: 'B', bit: 5 });
-    expect(arduinoPin('A3')).toEqual({ port: 'C', bit: 3 });
-    expect(arduinoPin('A7')).toEqual({ analog: 7 });
-    expect(arduinoPin('D20')).toBeNull();
+  it('maps the Uno pins to their ports and A0–A5 to PORTC', () => {
+    expect(ATMEGA328P.pin('D0')).toEqual({ port: 'D', bit: 0 });
+    expect(ATMEGA328P.pin('D8')).toEqual({ port: 'B', bit: 0 });
+    expect(ATMEGA328P.pin('D13')).toEqual({ port: 'B', bit: 5 });
+    expect(ATMEGA328P.pin('A3')).toEqual({ port: 'C', bit: 3 });
+    expect(ATMEGA328P.pin('D20')).toBeNull();
+    expect(ATMEGA328P.analogChannel('A7')).toBeNull();
+  });
+
+  it('maps the Mega pins from the Arduino core table', () => {
+    expect(ATMEGA2560.pin('D13')).toEqual({ port: 'B', bit: 7 });
+    expect(ATMEGA2560.pin('D22')).toEqual({ port: 'A', bit: 0 });
+    expect(ATMEGA2560.pin('D54')).toEqual({ port: 'F', bit: 0 });
+    expect(ATMEGA2560.analogChannel('A3')).toBe(3);
   });
 });
 

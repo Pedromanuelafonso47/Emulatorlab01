@@ -1,0 +1,8 @@
+# arduino-cli configuration used inside the container image (Linux paths).
+directories:
+  data: /app/arduino-data
+  downloads: /app/arduino-data/staging
+  user: /app/arduino-user
+board_manager:
+  additional_urls:
+    - https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
