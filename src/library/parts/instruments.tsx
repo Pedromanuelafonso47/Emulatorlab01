@@ -8,31 +8,40 @@ import { sel } from './common';
  * circuit (probes / jumpers) and the simulator computes what a physical instrument would read.
  */
 
+/** Instrument front: moulded case with grain, rounding and a soft sheen. */
 function Bench({ w, h, children, color = '#2a2f37' }: { w: number; h: number; children?: ReactNode; color?: string }) {
   return (
     <g>
-      <rect x={-w / 2} y={-h} width={w} height={h} rx={4} fill={color} stroke="#0e1014" strokeWidth={0.8} />
-      <rect x={-w / 2 + 2} y={-h + 2} width={w - 4} height={h - 4} rx={3} fill="#000" opacity={0.15} />
+      <rect x={-w / 2 + 2} y={-h + 3} width={w} height={h} rx={4} fill="#000" opacity={0.2} filter="url(#f-soft)" />
+      <rect x={-w / 2} y={-h} width={w} height={h} rx={4} fill={color} stroke="#0e1014" strokeWidth={0.8} filter="url(#f-texture)" />
+      <rect x={-w / 2} y={-h} width={w} height={h} rx={4} fill="url(#g-cyl-h)" opacity={0.18} />
+      <rect x={-w / 2 + 2} y={-h + 2} width={w - 4} height={h - 4} rx={3} fill="none" stroke="#fff" strokeOpacity={0.06} strokeWidth={0.8} />
       {children}
     </g>
   );
 }
 
+/** Banana socket: chrome collar, coloured body with a bore and a glint. */
 function Jack({ x, y, color, label }: { x: number; y: number; color: string; label: string }) {
+  const body = color === '#d63a32' ? 'url(#g-red-plastic)' : color === '#222' ? 'url(#g-black)' : color;
   return (
     <g>
-      <circle cx={x} cy={y} r={5.4} fill="#111" stroke="#555" strokeWidth={0.6} />
-      <circle cx={x} cy={y} r={3.8} fill={color} />
-      <circle cx={x} cy={y} r={1.6} fill="#050505" />
-      <Txt x={x} y={y - 9} size={2.6} fill="#e9e9e9">{label}</Txt>
+      <circle cx={x} cy={y} r={5.6} fill="url(#g-metal-r)" stroke="#50585f" strokeWidth={0.4} />
+      <circle cx={x} cy={y} r={4.4} fill={body} stroke="#000" strokeWidth={0.3} />
+      <circle cx={x} cy={y} r={4.4} fill="url(#g-epoxy-dome)" opacity={0.4} />
+      <circle cx={x} cy={y} r={1.7} fill="#050505" />
+      <circle cx={x - 1.6} cy={y - 1.8} r={0.6} fill="#fff" opacity={0.6} />
+      <Txt x={x} y={y - 8.2} size={2.6} fill="#e9e9e9">{label}</Txt>
     </g>
   );
 }
 
+/** LCD: segmented glass with a faint reflection; the 'off' segments stay visible. */
 function Lcd({ x, y, w, h, text, sub, color = '#1d2416', bg = '#b9c7a4' }: { x: number; y: number; w: number; h: number; text: string; sub?: string; color?: string; bg?: string }) {
   return (
     <g>
       <rect x={x} y={y} width={w} height={h} rx={1.2} fill={bg} stroke="#3a3f36" strokeWidth={0.5} />
+      <rect x={x} y={y} width={w} height={h} rx={1.2} fill="url(#g-glass)" opacity={0.25} />
       <Txt x={x + w / 2} y={y + h * (sub ? 0.42 : 0.5)} size={Math.min(h * 0.55, (w / Math.max(4, text.length)) * 1.55)} fill={color} weight={700}>{text}</Txt>
       {sub && <Txt x={x + w - 3} y={y + h - 3.2} size={2.6} fill={color} anchor="end" weight={600}>{sub}</Txt>}
     </g>
@@ -60,18 +69,22 @@ registerComponent({
     const unit = (state?.unit as string) ?? '';
     return (
       <g>
-        <rect x={-35} y={-115} width={70} height={122} rx={9} fill="#f0b429" stroke="#8a6410" strokeWidth={0.8} />
-        <rect x={-31} y={-111} width={62} height={114} rx={6} fill="#25282d" />
+        {/* yellow overmoulded rubber housing */}
+        <rect x={-35} y={-115} width={70} height={122} rx={9} fill="#e8a91c" stroke="#8a6410" strokeWidth={0.8} filter="url(#f-texture)" />
+        <rect x={-35} y={-115} width={70} height={122} rx={9} fill="url(#g-cyl-h)" opacity={0.3} />
+        <rect x={-31} y={-111} width={62} height={114} rx={6} fill="url(#g-black-flat)" stroke="#000" strokeWidth={0.4} />
         <Lcd x={-27} y={-106} w={54} h={24} text={text} sub={unit} />
         <Txt x={0} y={-76} size={3} fill="#cfd6e0" weight={700}>ELECTROLAB DMM</Txt>
-        <circle cx={0} cy={-46} r={20} fill="#1b1d21" stroke="#444" strokeWidth={0.6} />
+        {/* rotary function dial with knurled skirt */}
+        <circle cx={0} cy={-46} r={20} fill="url(#g-black)" stroke="#444" strokeWidth={0.6} />
         {MODES.map(([m, l]) => {
           const a = ((DIAL_ANGLE[m] - 90) * Math.PI) / 180;
-          return <Txt key={m} x={Math.cos(a) * 27} y={-46 + Math.sin(a) * 27} size={3} fill={m === mode ? '#f0b429' : '#9aa3ad'} weight={700}>{l.split('  ')[0]}</Txt>;
+          return <Txt key={m} x={Math.cos(a) * 27} y={-46 + Math.sin(a) * 27} size={3} fill={m === mode ? '#f0b429' : '#9aa3ad'} weight={700}>{l.split(' ')[0]}</Txt>;
         })}
         <g transform={`rotate(${DIAL_ANGLE[mode] ?? 0} 0 -46)`}>
           <circle cx={0} cy={-46} r={14} fill="url(#g-black)" stroke="#000" strokeWidth={0.6} />
-          <rect x={-2} y={-62} width={4} height={18} rx={2} fill="#e9e9e9" />
+          <circle cx={0} cy={-46} r={14} fill="url(#g-epoxy-dome)" opacity={0.5} />
+          <rect x={-2} y={-62} width={4} height={18} rx={2} fill="url(#g-white-plastic)" />
         </g>
         {state?.beep ? <Txt x={22} y={-20} size={6} fill="#f0b429" weight={800}>♪</Txt> : null}
         <Jack x={-20} y={0} color="#d63a32" label="10A" />

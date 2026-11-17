@@ -3,3 +3,9 @@ dist
 *.log
 .DS_Store
 tsconfig.tsbuildinfo
+.env.local
+tools/bin/
+tools/work/
+tools/arduino-cli.zip
+tools/arduino-cli.yaml
+tools/LICENSE.txt

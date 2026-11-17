@@ -56,14 +56,17 @@ export function DipBody({ n, label, sub, color = 'url(#g-black-flat)', textColor
   const by0 = -4.5, by1 = 14.5; // body y range (rows at -10 and 20)
   return (
     <g>
+      <rect x={x0 + 2} y={by0 + 3} width={x1 - x0} height={by1 - by0} rx={1.5} fill="#000" opacity={0.2} filter="url(#f-soft)" />
       {xs.map((x) => (
         <g key={x}>
           <rect x={x - 2.2} y={yTop - 2} width={4.4} height={by0 - yTop + 3} rx={0.6} fill="url(#g-metal-h)" stroke="#6f7782" strokeWidth={0.3} />
           <rect x={x - 2.2} y={by1 - 1} width={4.4} height={yBottom - by1 + 3} rx={0.6} fill="url(#g-metal-h)" stroke="#6f7782" strokeWidth={0.3} />
         </g>
       ))}
-      <rect x={x0} y={by0} width={x1 - x0} height={by1 - by0} rx={1.2} fill={color} stroke="#000" strokeWidth={0.4} />
-      <rect x={x0 + 0.6} y={by0 + 0.6} width={x1 - x0 - 1.2} height={1.2} fill="#fff" opacity={0.07} />
+      {/* moulded epoxy body: grain, cylindrical rounding and a gloss band along the top */}
+      <rect x={x0} y={by0} width={x1 - x0} height={by1 - by0} rx={1.2} fill={color} stroke="#000" strokeWidth={0.4} filter="url(#f-texture)" />
+      <rect x={x0} y={by0} width={x1 - x0} height={by1 - by0} rx={1.2} fill="url(#g-cyl-h)" opacity={0.22} />
+      <rect x={x0 + 0.6} y={by0 + 0.6} width={x1 - x0 - 1.2} height={1.2} fill="#fff" opacity={0.12} />
       <path d={`M${x0} ${5 - 3} A3 3 0 0 1 ${x0} ${5 + 3}`} fill="#0b0c0e" stroke="#000" strokeWidth={0.3} transform={`translate(0 0)`} />
       <circle cx={x0 + 3.2} cy={by1 - 3.2} r={1.1} fill="#0a0a0b" stroke="#3a3d42" strokeWidth={0.3} />
       <Txt x={(x0 + x1) / 2 + 1.5} y={sub ? 3 : 5} size={Math.min(5, (x1 - x0) / (label.length * 0.75))} fill={textColor}>{label}</Txt>
@@ -84,16 +87,22 @@ export function to92Pins(names: [PinSpecInput, PinSpecInput, PinSpecInput]): Pin
 }
 
 export function To92Body({ label, sub, pinLetters }: { label: string; sub?: string; pinLetters?: string[] }) {
+  const BODY = 'M-9 4 L-9 -9 Q-9 -15 -3 -15 L3 -15 Q9 -15 9 -9 L9 4 Z';
   return (
     <g>
-      <LeadPath d="M-3 4 L-3 9 L-10 15 L-10 20" />
-      <Lead x1={0} y1={4} x2={0} y2={20} />
-      <LeadPath d="M3 4 L3 9 L10 15 L10 20" />
-      <path d="M-9 4 L-9 -9 Q-9 -15 -3 -15 L3 -15 Q9 -15 9 -9 L9 4 Z" fill="url(#g-black-flat)" stroke="#000" strokeWidth={0.4} />
-      <path d="M-8 -9 Q-8 -14 -3 -14 L3 -14" fill="none" stroke="#fff" strokeOpacity={0.15} strokeWidth={0.8} />
-      <Txt x={0} y={-7} size={label.length > 6 ? 2.6 : 3.2} fill="#cfd3d8">{label}</Txt>
-      {sub && <Txt x={0} y={-2.5} size={2.2} fill="#8d939b" weight={500}>{sub}</Txt>}
-      {pinLetters && pinLetters.map((l, i) => <Txt key={i} x={(i - 1) * 5.4} y={1.5} size={2} fill="#7d838b">{l}</Txt>)}
+      <ellipse cx={0} cy={21} rx={11} ry={1.3} fill="#000" opacity={0.22} filter="url(#f-soft)" />
+      <LeadPath d="M-3 4 L-3 9 L-10 15 L-10 20" w={1.1} />
+      <LeadPath d="M0 4 L0 20" w={1.1} />
+      <LeadPath d="M3 4 L3 9 L10 15 L10 20" w={1.1} />
+      {/* moulded epoxy body with grain, cylindrical rounding and a glossy top */}
+      <path d={BODY} fill="url(#g-black-flat)" stroke="#000" strokeWidth={0.4} filter="url(#f-texture)" />
+      <path d={BODY} fill="url(#g-cyl-h)" opacity={0.9} />
+      <path d="M-7.5 -9 Q-7.5 -13.2 -3 -13.2 L1 -13.2" fill="none" stroke="#fff" strokeOpacity={0.3} strokeWidth={0.7} strokeLinecap="round" />
+      {/* printed marking: label with a dark shadow so it reads on the gloss */}
+      <Txt x={0.3} y={-7.3} size={label.length > 6 ? 2.6 : 3.2} fill="#000" opacity={0.5}>{label}</Txt>
+      <Txt x={0} y={-7.6} size={label.length > 6 ? 2.6 : 3.2} fill="#e4e7eb">{label}</Txt>
+      {sub && <Txt x={0} y={-2.8} size={2.2} fill="#a3a9b1" weight={500}>{sub}</Txt>}
+      {pinLetters && pinLetters.map((l, i) => <Txt key={i} x={(i - 1) * 5.4} y={1.5} size={2} fill="#9aa1aa">{l}</Txt>)}
     </g>
   );
 }
@@ -112,18 +121,28 @@ export function to220Pins(names: [PinSpecInput, PinSpecInput, PinSpecInput]): Pi
 export function To220Body({ label, sub }: { label: string; sub?: string }) {
   return (
     <g>
+      <ellipse cx={0} cy={31} rx={21} ry={1.6} fill="#000" opacity={0.2} filter="url(#f-soft)" />
       {[-10, 0, 10].map((x) => (
         <g key={x}>
-          <rect x={x - 2.4} y={11} width={4.8} height={7} fill="url(#g-metal-h)" stroke="#6f7782" strokeWidth={0.3} />
-          <Lead x1={x} y1={17} x2={x} y2={30} w={1.6} />
+          {/* tinned legs with a solder fillet where they leave the body */}
+          <Lead x1={x} y1={17} x2={x} y2={30} w={1.7} />
+          <rect x={x - 2.5} y={11} width={5} height={7} fill="url(#g-metal-h)" stroke="#6f7782" strokeWidth={0.3} />
+          <rect x={x - 2.5} y={11} width={5} height={7} fill="url(#g-cyl-h)" opacity={0.4} />
         </g>
       ))}
-      <path d="M-20 -16 L-20 -38 Q-20 -41 -17 -41 L17 -41 Q20 -41 20 -38 L20 -16 Z" fill="url(#g-metal)" stroke="#5f6670" strokeWidth={0.5} />
-      <circle cx={0} cy={-29} r={6} fill="#0e1116" stroke="#8a929c" strokeWidth={0.8} />
-      <rect x={-20} y={-17} width={40} height={30} rx={1} fill="url(#g-black-flat)" stroke="#000" strokeWidth={0.5} />
-      <rect x={-19} y={-16} width={38} height={1.4} fill="#fff" opacity={0.08} />
-      <Txt x={0} y={-6} size={label.length > 7 ? 4 : 5} fill="#d4d8dd">{label}</Txt>
-      {sub && <Txt x={0} y={1} size={2.8} fill="#8d939b" weight={500}>{sub}</Txt>}
+      {/* metal heat-sink tab with a mounting hole and bevelled edge */}
+      <path d="M-20 -16 L-20 -38 Q-20 -41 -17 -41 L17 -41 Q20 -41 20 -38 L20 -16 Z" fill="url(#g-metal-cap)" stroke="#5f6670" strokeWidth={0.5} />
+      <path d="M-20 -16 L-20 -38 Q-20 -41 -17 -41 L17 -41 Q20 -41 20 -38 L20 -16 Z" fill="url(#g-cyl-h)" opacity={0.25} />
+      <circle cx={0} cy={-29} r={6.3} fill="#8f98a3" />
+      <circle cx={0} cy={-29} r={5.2} fill="#0a0c10" />
+      <circle cx={0} cy={-29} r={5.2} fill="none" stroke="#fff" strokeOpacity={0.12} strokeWidth={0.5} />
+      {/* moulded epoxy body with grain and rounding */}
+      <rect x={-20} y={-17} width={40} height={30} rx={1.2} fill="url(#g-black-flat)" stroke="#000" strokeWidth={0.5} filter="url(#f-texture)" />
+      <rect x={-20} y={-17} width={40} height={30} rx={1.2} fill="url(#g-cyl-h)" opacity={0.35} />
+      <rect x={-19} y={-16} width={38} height={1.4} fill="#fff" opacity={0.14} />
+      <Txt x={0.3} y={-5.7} size={label.length > 7 ? 4 : 5} fill="#000" opacity={0.5}>{label}</Txt>
+      <Txt x={0} y={-6} size={label.length > 7 ? 4 : 5} fill="#e4e7eb">{label}</Txt>
+      {sub && <Txt x={0} y={1} size={2.8} fill="#a3a9b1" weight={500}>{sub}</Txt>}
     </g>
   );
 }
@@ -182,12 +201,16 @@ export function ModuleBoard({ m, children }: { m: ModuleSpec; children?: ReactNo
         </>
       )}
       {children}
-      {pins.map((p, i) => (
-        <g key={p.id}>
-          <HeaderPin x={pinX0 + i * 10} y={pinY} />
-          <Txt x={pinX0 + i * 10} y={pinY - 8.5} size={p.name.length > 4 ? 2.1 : 2.7} fill="#f3f5f7" rotate={p.name.length > 4 ? -90 : undefined}>{p.name}</Txt>
-        </g>
-      ))}
+      {pins.map((p, i) => {
+        // Labels above the board edge sit on the light canvas: use dark ink there so they stay legible.
+        const outside = pinY - 8.5 < by + 2;
+        return (
+          <g key={p.id}>
+            <HeaderPin x={pinX0 + i * 10} y={pinY} />
+            <Txt x={pinX0 + i * 10} y={pinY - 8.5} size={p.name.length > 4 ? 2.1 : 2.7} fill={outside ? '#1d2631' : '#f3f5f7'} rotate={p.name.length > 4 ? -90 : undefined}>{p.name}</Txt>
+          </g>
+        );
+      })}
       {m.title && <Txt x={bx + m.w / 2} y={by + m.h - 14} size={3.4} fill="#e9eef5">{m.title}</Txt>}
     </g>
   );

@@ -28,8 +28,8 @@ self.onmessage = (e: MessageEvent<Msg>) => {
   const m = e.data;
   try {
     if (m.type === 'load') {
-      mcu.load(m.programs ?? [], m.circuit);
-      runner.load(m.circuit, m.version, m.settings);
+      const circuit = mcu.load(m.programs ?? [], m.circuit);   // adds the pin drivers of the boards
+      runner.load(circuit, m.version, m.settings);
       if (!timer) { last = performance.now(); timer = setInterval(loop, 33); }
       loop();
     } else if (m.type === 'settings') runner.setSettings(m.settings);

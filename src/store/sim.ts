@@ -16,6 +16,7 @@ import { getDef } from '@/library/registry';
 import { useEditor } from './editor';
 import { analyze } from './derived';
 import { buildPrograms } from '@/mcu/programs';
+import { compileForBoard, isEmulatedBoard } from '@/mcu/avr/compile';
 
 export type SpeedSetting = 'auto' | 1 | 0.1 | 0.01 | 0.001;
 
@@ -106,9 +107,36 @@ function startFallback() {
   load();
 }
 
-function load() {
+let loadSeq = 0;
+
+/**
+ * Compiles the sketches of the emulated boards (Uno, Nano) to HEX. A board whose sketch cannot be
+ * compiled because the compile service is off, or because it needs a library the compiler does not
+ * have, keeps running on the built-in interpreter; a real compile error stops that board and is shown.
+ */
+async function withFirmware(programs: McuProgram[]): Promise<McuProgram[]> {
+  const out: McuProgram[] = [];
+  for (const p of programs) {
+    if (!isEmulatedBoard(p.board)) { out.push(p); continue; }
+    const r = await compileForBoard(p.board, p.code);
+    const label = useEditor.getState().doc.components[p.compId]?.label ?? p.compId;
+    if (r.kind === 'hex') out.push({ ...p, hex: r.hex });
+    else if (r.kind === 'error') {
+      out.push({ ...p, compileErrors: r.errors });
+      for (const e of r.errors) useEditor.getState().log('error', `${label} · linha ${e.line}: ${e.message}`);
+    } else {
+      const why = r.kind === 'library' ? `a biblioteca ${r.header} não existe no compilador` : r.reason;
+      useEditor.getState().log('warn', `${label}: executa no interpretador (${why}).`);
+      out.push(p);
+    }
+  }
+  return out;
+}
+
+async function load() {
   const st = useSim.getState();
   if (!st.running) return;
+  const seq = ++loadSeq;
   const doc = useEditor.getState().doc;
   const { nl } = analyze(doc);
   let compiled: Compiled;
@@ -117,6 +145,8 @@ function load() {
     compiled = compile(doc, nl, st.blown);
     programs = buildPrograms(doc, nl, compiled);
   } catch (e) { useEditor.getState().notify(`Erro ao preparar o circuito: ${(e as Error).message}`, 'error'); return; }
+  programs = await withFirmware(programs);
+  if (seq !== loadSeq || !useSim.getState().running) return;   // a newer load superseded this one
   const { nodes, nets } = probesFor(doc, nl, compiled);
   const { dt, timeScale } = timing(doc, st.speedSetting);
   const settings: RunnerSettings = { dt, timeScale, probes: nodes };
@@ -124,7 +154,7 @@ function load() {
   jobs.set(v, { doc, nl, compiled, probeNets: nets });
   for (const k of jobs.keys()) if (k < v - 5) jobs.delete(k);
   useSim.setState({ dt });
-  if (fallback) { fallback.mcu.load(programs, compiled.circuit); fallback.runner.load(compiled.circuit, v, settings); return; }
+  if (fallback) { fallback.runner.load(fallback.mcu.load(programs, compiled.circuit), v, settings); return; }
   const w = getWorker();
   if (!w) { startFallback(); return; }
   w.postMessage({ type: 'load', circuit: compiled.circuit, version: v, settings, programs });

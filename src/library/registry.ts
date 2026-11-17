@@ -1,12 +1,16 @@
 import type { PropValue } from '@/domain/types';
 import type { Rect } from '@/domain/geometry';
 import type { ComponentDef, PinDef } from './types';
+import { MODELS } from '@/engine/sim/models';
 
 const registry = new Map<string, ComponentDef>();
 
 export function registerComponent(def: ComponentDef) {
   if (registry.has(def.type)) throw new Error(`Componente duplicado: ${def.type}`);
-  registry.set(def.type, def);
+  // The electrical model in the engine is the single source of truth for the simulation status shown in the library.
+  const model = MODELS[def.type];
+  const sim = model ? { ...def.sim, status: model.status, note: model.note ?? def.sim.note } : def.sim;
+  registry.set(def.type, { ...def, sim });
 }
 
 export function getDef(type: string): ComponentDef | undefined {

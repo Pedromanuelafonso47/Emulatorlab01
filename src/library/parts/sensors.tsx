@@ -19,22 +19,48 @@ function sensorModule(base: Omit<ComponentDef, 'bbox' | 'pins' | 'render' | 'cat
   });
 }
 
-/** Blue trimmer potentiometer (3296-style) used on comparator modules. */
+/** Contact shadow under a bare component. */
+const shadow = (cx: number, cy: number, rx: number) => <ellipse cx={cx} cy={cy} rx={rx} ry={1.3} fill="#000" opacity={0.2} filter="url(#f-soft)" />;
+
+/** Blue multi-turn trimmer: moulded case, shaded side, gold adjustment screw with its slot. */
 function Trimmer({ x, y }: { x: number; y: number }) {
   return (
     <g>
-      <rect x={x - 5} y={y - 5} width={10} height={10} rx={0.8} fill="#2f6fd6" stroke="#173a75" strokeWidth={0.4} />
-      <circle cx={x + 2} cy={y - 2} r={1.8} fill="#e6c76a" /><line x1={x + 0.8} y1={y - 2} x2={x + 3.2} y2={y - 2} stroke="#7a5d12" strokeWidth={0.5} />
+      <rect x={x - 5} y={y - 5} width={10} height={10} rx={0.8} fill="#2a64c4" stroke="#0e2f66" strokeWidth={0.4} />
+      <rect x={x - 5} y={y - 5} width={10} height={10} rx={0.8} fill="url(#g-cyl-h)" opacity={0.35} />
+      <circle cx={x + 2} cy={y - 2} r={2} fill="url(#g-gold)" stroke="#6b4e0d" strokeWidth={0.3} />
+      <rect x={x + 1} y={y - 2.4} width={2.4} height={0.8} fill="#4a3608" />
     </g>
   );
 }
 
+/** SOIC-8 comparator (LM393): dark moulded body, pin-1 dot and gull-wing leads. */
 function Lm393({ x, y }: { x: number; y: number }) {
   return (
     <g>
-      <rect x={x - 8} y={y - 4} width={16} height={8} rx={0.6} fill="#1b1d21" />
-      {[-6, -2, 2, 6].map((d) => <g key={d}><rect x={x + d - 0.6} y={y - 5.4} width={1.2} height={1.6} fill="#bbb" /><rect x={x + d - 0.6} y={y + 3.8} width={1.2} height={1.6} fill="#bbb" /></g>)}
-      <Txt x={x} y={y} size={2} fill="#bbb">LM393</Txt>
+      <rect x={x - 8} y={y - 4} width={16} height={8} rx={0.6} fill="#17191d" filter="url(#f-texture)" />
+      <rect x={x - 8} y={y - 4} width={16} height={8} rx={0.6} fill="url(#g-cyl-h)" opacity={0.3} />
+      <circle cx={x - 6} cy={y - 2.6} r={0.6} fill="#55595f" />
+      {[-6, -2, 2, 6].map((d) => (
+        <g key={d}>
+          <rect x={x + d - 0.6} y={y - 5.6} width={1.2} height={1.8} fill="url(#g-metal-h)" />
+          <rect x={x + d - 0.6} y={y + 3.8} width={1.2} height={1.8} fill="url(#g-metal-h)" />
+        </g>
+      ))}
+      <Txt x={x} y={y + 0.8} size={2} fill="#c9ced6">LM393</Txt>
+    </g>
+  );
+}
+
+/** Zig-zag CdS track (same look as the LDR component). */
+function LdrCell({ cx, cy, r }: { cx: number; cy: number; r: number }) {
+  const pts: string[] = [];
+  for (let i = 0; i < 7; i++) pts.push(`${cx - r * 0.7 + i * (r * 0.23)},${cy - r * 0.6}`, `${cx - r * 0.7 + i * (r * 0.23) + r * 0.12},${cy + r * 0.6}`);
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={r} fill="#cdbf9b" stroke="#7d6f55" strokeWidth={0.4} filter="url(#f-texture)" />
+      <polyline points={pts.join(' ')} fill="none" stroke="#a7402a" strokeWidth={0.8} strokeLinejoin="round" />
+      <circle cx={cx} cy={cy} r={r} fill="url(#g-glass)" opacity={0.5} />
     </g>
   );
 }
@@ -52,13 +78,18 @@ sensorModule({
   <g>
     {[bx + w / 2 - 45, bx + w / 2 + 45].map((cx, i) => (
       <g key={i}>
+        {shadow(cx, by + 68, 30)}
+        {/* aluminium can with the transducer membrane behind a mesh grille */}
         <circle cx={cx} cy={by + 36} r={30} fill="url(#g-metal-r)" stroke="#5a616b" strokeWidth={0.6} />
-        <circle cx={cx} cy={by + 36} r={24} fill="url(#p-mesh)" />
-        <circle cx={cx} cy={by + 36} r={24} fill="url(#g-transducer)" opacity={0.35} />
+        <circle cx={cx} cy={by + 36} r={26} fill="#16181c" />
+        <circle cx={cx} cy={by + 36} r={24} fill="url(#p-mesh)" opacity={0.85} />
+        <circle cx={cx} cy={by + 36} r={24} fill="url(#g-transducer)" opacity={0.55} />
+        <circle cx={cx - 6} cy={by + 28} r={7} fill="url(#g-epoxy-dome)" opacity={0.6} />
         <Txt x={cx} y={by + 72} size={4} fill="#fff">{i === 0 ? 'T' : 'R'}</Txt>
       </g>
     ))}
-    <rect x={bx + w / 2 - 9} y={by + 12} width={18} height={9} rx={1.5} fill="#d8dde3" stroke="#888" strokeWidth={0.4} />
+    {/* SMD crystal and the marking */}
+    <rect x={bx + w / 2 - 9} y={by + 12} width={18} height={9} rx={1.5} fill="url(#g-metal-cap)" stroke="#888" strokeWidth={0.4} />
     <Txt x={bx + w / 2} y={by + 30} size={5} fill="#fff">HC-SR04</Txt>
   </g>
 ));
@@ -78,9 +109,9 @@ registerComponent({
 });
 
 // ───────── DHT11 / DHT22 (bare sensors) ─────────
-for (const [type, name, color, w, h, info] of [
-  ['dht11', 'Sensor DHT11', '#3b7fd1', 50, 62, 'Temperatura 0–50 °C (±2 °C), humidade 20–90 % (±5 %). 1 leitura/s.'],
-  ['dht22', 'Sensor DHT22 (AM2302)', '#eef0f2', 56, 78, 'Temperatura −40–80 °C (±0,5 °C), humidade 0–100 % (±2 %). 1 leitura/2 s.'],
+for (const [type, name, plastic, ink, w, h, info] of [
+  ['dht11', 'Sensor DHT11', 'url(#g-blue-plastic)', '#f2f6fb', 50, 62, 'Temperatura 0–50 °C (±2 °C), humidade 20–90 % (±5 %). 1 leitura/s.'],
+  ['dht22', 'Sensor DHT22 (AM2302)', 'url(#g-white-plastic)', '#2a3038', 56, 78, 'Temperatura −40–80 °C (±0,5 °C), humidade 0–100 % (±2 %). 1 leitura/2 s.'],
 ] as const) {
   registerComponent({
     type, name, category: 'sensors', prefix: 'U',
@@ -91,11 +122,18 @@ for (const [type, name, color, w, h, info] of [
     props: [num('temperature', 'Temperatura', 24, '°C', { si: false }), num('humidity', 'Humidade relativa', 55, '%', { si: false, min: 0, max: 100 })],
     valueLabel: (p) => `${p.temperature}°C ${p.humidity}%`,
     render: () => (
-      <g color={color}>
-        {[-10, 0, 10, 20].map((x) => <Lead key={x} x1={x} y1={0} x2={x} y2={20} />)}
-        <rect x={-w / 2 + 5} y={-h} width={w} height={h} rx={3} fill={color} stroke="#0003" strokeWidth={0.6} />
-        <rect x={-w / 2 + 10} y={-h + 5} width={w - 10} height={h * 0.62} fill="url(#p-dht)" />
-        <Txt x={5} y={-h * 0.22} size={4.2} fill={type === 'dht22' ? '#333' : '#fff'}>{type.toUpperCase()}</Txt>
+      <g>
+        {shadow(5, 21, w / 2)}
+        {/* tinned legs */}
+        {[-10, 0, 10, 20].map((x) => <Lead key={x} x1={x} y1={-h} x2={x} y2={20} w={1.2} />)}
+        {/* moulded case with grain, rounding and a gloss band */}
+        <rect x={-w / 2 + 5} y={-h} width={w} height={h} rx={3} fill={plastic} stroke="#0003" strokeWidth={0.6} filter={type === 'dht11' ? 'url(#f-texture)' : undefined} />
+        <rect x={-w / 2 + 5} y={-h} width={w} height={h} rx={3} fill="url(#g-cyl-h)" opacity={0.3} />
+        <rect x={-w / 2 + 5} y={-h + 1} width={w - 2} height={1.2} rx={0.6} fill="#fff" opacity={0.25} />
+        {/* recessed vent grille */}
+        <rect x={-w / 2 + 10} y={-h + 5} width={w - 10} height={h * 0.62} rx={1} fill="#0c0f13" />
+        <g color="#7d8790"><rect x={-w / 2 + 10} y={-h + 5} width={w - 10} height={h * 0.62} rx={1} fill="url(#p-dht)" /></g>
+        <Txt x={5} y={-h * 0.22} size={4.2} fill={ink}>{type.toUpperCase()}</Txt>
       </g>
     ),
     datasheet: { summary: info },
@@ -112,16 +150,24 @@ sensorModule({
   valueLabel: (p) => (p.motion ? 'movimento' : 'parado'),
   datasheet: { summary: 'Alcance até 7 m, ângulo 110°. Potenciómetros ajustam sensibilidade e tempo de retenção (5 s – 5 min).' },
   sim: sim('pir'),
-}, pir, ({ bx, by, w, h }) => (
-  <g>
-    <circle cx={bx + w / 2} cy={by + h / 2 - 8} r={44} fill="url(#g-dome-white)" stroke="#9aa1aa" strokeWidth={0.6} />
-    {Array.from({ length: 5 }, (_, i) => <circle key={i} cx={bx + w / 2} cy={by + h / 2 - 8} r={9 + i * 8} fill="none" stroke="#b8bec5" strokeWidth={0.5} />)}
-    <path d={`M${bx + w / 2 - 44} ${by + h / 2 - 8} H${bx + w / 2 + 44} M${bx + w / 2} ${by + h / 2 - 52} V${by + h / 2 + 36}`} stroke="#c3c8ce" strokeWidth={0.4} />
-  </g>
-));
+}, pir, ({ bx, by, w, h }) => {
+  const cx = bx + w / 2, cy = by + h / 2 - 8;
+  return (
+    <g>
+      {/* Fresnel lens: translucent dome with concentric facets and a specular arc */}
+      {shadow(cx, cy + 46, 40)}
+      <circle cx={cx} cy={cy} r={44} fill="url(#g-dome-white)" stroke="#9aa1aa" strokeWidth={0.6} opacity={0.95} />
+      {Array.from({ length: 5 }, (_, i) => <circle key={i} cx={cx} cy={cy} r={9 + i * 8} fill="none" stroke="#aab2bb" strokeWidth={0.5} opacity={0.75} />)}
+      <path d={`M${cx - 44} ${cy} H${cx + 44} M${cx} ${cy - 44} V${cy + 44}`} stroke="#c3c8ce" strokeWidth={0.4} />
+      <path d={`M${cx - 30} ${cy - 22} A34 34 0 0 1 ${cx - 6} ${cy - 34}`} fill="none" stroke="#fff" strokeWidth={1.6} strokeLinecap="round" opacity={0.85} />
+      {/* two multi-turn trimmers on the board */}
+      <Trimmer x={bx + 14} y={by + h - 12} /><Trimmer x={bx + w - 14} y={by + h - 12} />
+    </g>
+  );
+});
 
 // ───────── Soil moisture (capacitive) ─────────
-const soil: ModuleSpec = { w: 60, h: 170, x: -40, y: -6, pcb: 'black', pins: [{ name: 'GND', role: 'ground' }, { name: 'VCC', role: 'power' }, { name: 'AOUT', role: 'analog' }], pinX0: -20 };
+const soil: ModuleSpec = { w: 60, h: 170, x: -40, y: -6, pcb: 'green', pins: [{ name: 'GND', role: 'ground' }, { name: 'VCC', role: 'power' }, { name: 'AOUT', role: 'analog' }], pinX0: -20 };
 sensorModule({
   type: 'soil-moisture', name: 'Sensor de humidade do solo', description: 'Sensor capacitivo v1.2 — saída analógica inversamente proporcional à humidade.',
   tags: ['solo', 'humidade', 'rega', 'capacitivo'],
@@ -131,11 +177,16 @@ sensorModule({
   sim: sim('analog-sensor'),
 }, soil, ({ bx, by, w, h }) => (
   <g>
-    <rect x={bx + 8} y={by + 18} width={w - 16} height={18} rx={1} fill="#1a1c20" stroke="#444" strokeWidth={0.3} />
-    <Txt x={bx + w / 2} y={by + 27} size={2.4} fill="#888">TLC555</Txt>
-    <path d={`M${bx + 6} ${by + 50} H${bx + w - 6} V${by + h - 16} L${bx + w / 2} ${by + h - 2} L${bx + 6} ${by + h - 16} Z`} fill="#0d0f12" stroke="#2a2d33" strokeWidth={0.4} />
-    <rect x={bx + 14} y={by + 60} width={w - 28} height={h - 85} rx={2} fill="none" stroke="#c9a43a" strokeWidth={0.8} opacity={0.6} />
-    <Txt x={bx + w / 2} y={by + 46} size={2.6} fill="#ddd">Capacitive Soil v1.2</Txt>
+    {/* SOIC-8 timer (TLC555) with gull-wing pins */}
+    <rect x={bx + 14} y={by + 16} width={w - 28} height={18} rx={1} fill="#16181c" stroke="#333" strokeWidth={0.3} filter="url(#f-texture)" />
+    {[0, 1, 2, 3].map((i) => <g key={i}><rect x={bx + 11} y={by + 19 + i * 4} width={3} height={1.2} fill="url(#g-metal-h)" /><rect x={bx + w - 14} y={by + 19 + i * 4} width={3} height={1.2} fill="url(#g-metal-h)" /></g>)}
+    <circle cx={bx + 17} cy={by + 19} r={0.8} fill="#55595f" />
+    <Txt x={bx + w / 2} y={by + 26} size={2.4} fill="#c9ced6">TLC555</Txt>
+    {/* silkscreen title */}
+    <Txt x={bx + w / 2} y={by + 46} size={2.5} fill="#f2f6fb">Capacitive Soil v1.2</Txt>
+    {/* two gold probe tines, bevelled at the tips */}
+    {[bx + 14, bx + 38].map((x) => <rect key={x} x={x} y={by + 56} width={8} height={h - 62} rx={3} fill="url(#g-gold)" stroke="#6b4e0d" strokeWidth={0.3} />)}
+    <rect x={bx + 22} y={by + 56} width={16} height={h - 62} rx={1} fill="url(#g-pcb-green)" />
   </g>
 ));
 
@@ -150,9 +201,12 @@ sensorModule({
   sim: sim('analog-sensor'),
 }, mq2, ({ bx, by, w }) => (
   <g>
-    <circle cx={bx + w / 2} cy={by + 42} r={34} fill="#b0b6bd" stroke="#6b737d" strokeWidth={0.8} />
-    <circle cx={bx + w / 2} cy={by + 42} r={30} fill="url(#p-mesh)" />
-    <circle cx={bx + w / 2} cy={by + 42} r={30} fill="url(#g-metal-r)" opacity={0.3} />
+    {/* metal sensing cap: wire-mesh grille on a shaded cylinder */}
+    {shadow(bx + w / 2, by + 80, 34)}
+    <circle cx={bx + w / 2} cy={by + 42} r={34} fill="url(#g-metal-r)" stroke="#6b737d" strokeWidth={0.8} />
+    <circle cx={bx + w / 2} cy={by + 42} r={30} fill="url(#p-mesh)" opacity={0.9} />
+    <circle cx={bx + w / 2} cy={by + 42} r={30} fill="url(#g-epoxy-dome)" opacity={0.25} />
+    <circle cx={bx + w / 2} cy={by + 42} r={34} fill="none" stroke="#fff" strokeOpacity={0.3} strokeWidth={0.6} />
     <Trimmer x={bx + 16} y={by + 88} /><Lm393 x={bx + w / 2 + 14} y={by + 88} />
     <SmdLed x={bx + 12} y={by + 100} color="#ff3b30" on /><SmdLed x={bx + 22} y={by + 100} color="#ff3b30" />
   </g>
@@ -168,12 +222,11 @@ sensorModule({
   sim: sim('analog-sensor'),
 }, lightMod, ({ bx, by, w }) => (
   <g>
-    <circle cx={bx + 12} cy={by + 22} r={8} fill="#f2eee4" stroke="#9b8f7a" strokeWidth={0.4} />
-    <path d={`M${bx + 7} ${by + 18} h10 v2 h-10 v2 h10 v2 h-10 v2 h10`} fill="none" stroke="#b5452a" strokeWidth={0.8} />
+    <LdrCell cx={bx + 14} cy={by + 22} r={8} />
     <Trimmer x={bx + 36} y={by + 20} /><Lm393 x={bx + 62} y={by + 20} />
     <SmdLed x={bx + 84} y={by + 14} color="#ff3b30" on /><SmdLed x={bx + 84} y={by + 26} color="#33dd55" />
     <Smd x={bx + 100} y={by + 18} /><Smd x={bx + 100} y={by + 26} />
-    <Txt x={bx + w / 2} y={by + 36} size={3} fill="#e9eef5">LIGHT SENSOR</Txt>
+    <Txt x={bx + w / 2} y={by + 38} size={3} fill="#e9eef5">LIGHT SENSOR</Txt>
   </g>
 ));
 
@@ -188,18 +241,21 @@ registerComponent({
   valueLabel: (p) => `${p.wetness}% molhado`,
   render: () => (
     <g>
+      {shadow(0, 2, 46)}
       <rect x={-50} y={-85} width={100} height={80} rx={2} fill="url(#g-pcb-red)" stroke="#5a0f0b" strokeWidth={0.6} />
+      <rect x={-50} y={-85} width={100} height={80} rx={2} fill="url(#g-cyl-h)" opacity={0.25} />
+      {/* interdigitated gold tracks */}
       {Array.from({ length: 9 }, (_, i) => (
-        <rect key={i} x={i % 2 ? -40 : -44} y={-78 + i * 7.5} width={84} height={3} fill="#d9c27a" opacity={0.9} />
+        <rect key={i} x={i % 2 ? -40 : -44} y={-78 + i * 7.5} width={84} height={3} fill="url(#g-gold)" opacity={0.95} />
       ))}
-      <rect x={-46} y={-80} width={3} height={70} fill="#d9c27a" /><rect x={43} y={-80} width={3} height={70} fill="#d9c27a" />
+      <rect x={-46} y={-80} width={3} height={70} fill="url(#g-gold)" /><rect x={43} y={-80} width={3} height={70} fill="url(#g-gold)" />
       <HeaderPin x={-10} y={0} /><HeaderPin x={10} y={0} />
     </g>
   ),
   sim: sim('variable-resistor'),
 });
 
-// ───────── ACS712 current sensor ─────────
+// ───────── Current / voltage terminal modules ─────────
 function terminalModule(type: string, name: string, description: string, tags: string[], pcb: ModuleSpec['pcb'], header: { id: string; name: string; role: 'power' | 'ground' | 'analog' | 'output' }[], term: [string, string], chip: string, summary: string, props: ComponentDef['props']) {
   registerComponent({
     type, name, category: 'sensors', prefix: 'U', description, tags,
@@ -212,12 +268,23 @@ function terminalModule(type: string, name: string, description: string, tags: s
     props,
     render: () => (
       <g>
+        {shadow(0, 6, 28)}
         <rect x={-29} y={-63} width={58} height={69} rx={2.5} fill={`url(#g-pcb-${pcb})`} stroke="#0006" strokeWidth={0.6} />
-        <rect x={-22} y={-62} width={44} height={22} rx={1} fill="#2f6fd6" stroke="#173a75" strokeWidth={0.5} />
-        {[-10, 10].map((x) => <g key={x}><rect x={x - 6} y={-60} width={12} height={8} fill="#1e4f9a" /><circle cx={x} cy={-50} r={4} fill="url(#g-metal-r)" /><line x1={x - 2.5} y1={-50} x2={x + 2.5} y2={-50} stroke="#555" strokeWidth={0.8} /></g>)}
-        <rect x={-8} y={-32} width={16} height={10} rx={0.6} fill="#1b1d21" /><Txt x={0} y={-27} size={2} fill="#aaa">{chip}</Txt>
+        <rect x={-29} y={-63} width={58} height={69} rx={2.5} fill="url(#g-cyl-h)" opacity={0.2} />
+        {/* screw terminal blocks: moulded green plastic with a screw head each */}
+        {[-10, 10].map((x) => (
+          <g key={x}>
+            <rect x={x - 7} y={-56} width={14} height={13} rx={1} fill="#1f8a45" stroke="#0c4a24" strokeWidth={0.4} filter="url(#f-texture)" />
+            <rect x={x - 7} y={-56} width={14} height={13} rx={1} fill="url(#g-cyl-h)" opacity={0.35} />
+            <circle cx={x} cy={-50} r={4} fill="url(#g-metal-r)" stroke="#50585f" strokeWidth={0.3} />
+            <line x1={x - 2.6} y1={-50} x2={x + 2.6} y2={-50} stroke="#3a4149" strokeWidth={0.8} />
+          </g>
+        ))}
+        {/* SOIC-8 chip with the part number */}
+        <rect x={-8} y={-32} width={16} height={10} rx={0.6} fill="#16181c" filter="url(#f-texture)" />
+        <Txt x={0} y={-26} size={2} fill="#c9ced6">{chip}</Txt>
         <Smd x={-18} y={-27} /><Smd x={18} y={-27} /><SmdLed x={-18} y={-16} color="#ff3b30" on />
-        {header.map((h, i) => <g key={h.id}><HeaderPin x={-10 + i * 10} y={0} /><Txt x={-10 + i * 10} y={-8} size={2.4} fill="#fff">{h.name}</Txt></g>)}
+        {header.map((h, i) => <g key={h.id}><HeaderPin x={-10 + i * 10} y={0} /><Txt x={-10 + i * 10} y={-8} size={2.4} fill="#1d2631">{h.name}</Txt></g>)}
       </g>
     ),
     datasheet: { summary },
@@ -236,14 +303,22 @@ sensorModule({
   tags: ['encoder', 'rotativo', 'ky-040', 'quadratura'],
   datasheet: { summary: 'CLK e DT em quadratura: o sentido é dado pela fase de DT no flanco de CLK.' },
   sim: sim('encoder', 'Comportamento digital — requer MCU (Fase 5).'),
-}, enc, ({ bx, by, w }) => (
-  <g>
-    <rect x={bx + w / 2 - 26} y={by + 6} width={52} height={46} rx={2} fill="url(#g-metal)" stroke="#555" strokeWidth={0.5} />
-    <circle cx={bx + w / 2} cy={by + 29} r={18} fill="url(#g-black)" stroke="#000" strokeWidth={0.5} />
-    {Array.from({ length: 24 }, (_, i) => { const a = (i / 24) * Math.PI * 2; return <line key={i} x1={bx + w / 2 + Math.cos(a) * 15} y1={by + 29 + Math.sin(a) * 15} x2={bx + w / 2 + Math.cos(a) * 18} y2={by + 29 + Math.sin(a) * 18} stroke="#555" strokeWidth={0.8} />; })}
-    <path d={`M${bx + w / 2 - 6} ${by + 22} A9 9 0 0 1 ${bx + w / 2 + 6} ${by + 22} L${bx + w / 2 + 6} ${by + 36} A9 9 0 0 1 ${bx + w / 2 - 6} ${by + 36} Z`} fill="#c3c9d0" opacity={0.25} />
-  </g>
-));
+}, enc, ({ bx, by, w }) => {
+  const cx = bx + w / 2, cy = by + 29;
+  return (
+    <g>
+      {/* metal bushing and nut */}
+      <rect x={cx - 26} y={by + 6} width={52} height={46} rx={2} fill="url(#g-metal)" stroke="#555" strokeWidth={0.5} />
+      <rect x={cx - 26} y={by + 6} width={52} height={46} rx={2} fill="url(#g-cyl-h)" opacity={0.25} />
+      {/* knurled black knob with a bevelled top */}
+      {shadow(cx, cy + 20, 18)}
+      <circle cx={cx} cy={cy} r={18} fill="url(#g-black)" stroke="#000" strokeWidth={0.5} />
+      {Array.from({ length: 24 }, (_, i) => { const a = (i / 24) * Math.PI * 2; return <line key={i} x1={cx + Math.cos(a) * 15} y1={cy + Math.sin(a) * 15} x2={cx + Math.cos(a) * 18} y2={cy + Math.sin(a) * 18} stroke="#4a4f57" strokeWidth={0.8} />; })}
+      <circle cx={cx} cy={cy} r={12} fill="url(#g-epoxy-dome)" opacity={0.5} />
+      <path d={`M${cx - 7} ${cy - 5} A9 9 0 0 1 ${cx + 6} ${cy - 8}`} fill="none" stroke="#fff" strokeOpacity={0.4} strokeWidth={1.2} strokeLinecap="round" />
+    </g>
+  );
+});
 
 // ───────── IR proximity ─────────
 const ir: ModuleSpec = { w: 60, h: 120, pcb: 'blue', pins: [{ name: 'OUT', role: 'output' }, { name: 'GND', role: 'ground' }, { name: 'VCC', role: 'power' }] };
@@ -256,8 +331,11 @@ sensorModule({
 }, ir, ({ bx, by, w }) => (
   <g>
     <LeadPath d={`M${bx + w / 2 - 8} ${by + 22} V${by + 6}`} /><LeadPath d={`M${bx + w / 2 + 8} ${by + 22} V${by + 6}`} />
-    <rect x={bx + w / 2 - 14} y={by - 14} width={12} height={18} rx={6} fill="#e9eef3" stroke="#9aa" strokeWidth={0.4} opacity={0.9} />
-    <rect x={bx + w / 2 + 2} y={by - 14} width={12} height={18} rx={6} fill="#15171a" stroke="#000" strokeWidth={0.4} />
+    {/* IR emitter (clear dome) and photodiode (black, flat) */}
+    <rect x={bx + w / 2 - 14} y={by - 14} width={12} height={18} rx={6} fill="url(#g-dome-white)" stroke="#9aa" strokeWidth={0.4} opacity={0.95} />
+    <rect x={bx + w / 2 - 12} y={by - 12} width={3} height={8} rx={1.5} fill="#fff" opacity={0.4} />
+    <rect x={bx + w / 2 + 2} y={by - 14} width={12} height={18} rx={6} fill="url(#g-black-flat)" stroke="#000" strokeWidth={0.4} />
+    <rect x={bx + w / 2 + 4} y={by - 12} width={3} height={8} rx={1.5} fill="#fff" opacity={0.12} />
     <Trimmer x={bx + w / 2} y={by + 40} /><Lm393 x={bx + w / 2} y={by + 62} />
     <SmdLed x={bx + 14} y={by + 80} color="#ff3b30" on /><SmdLed x={bx + w - 14} y={by + 80} color="#33dd55" />
   </g>

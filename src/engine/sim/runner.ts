@@ -40,7 +40,7 @@ export class SimRunner {
     const state = this.tr?.eng.saveState() ?? this.dc?.saveState() ?? {};
     this.version = version;
     this.settings = settings;
-    this.dynamic = isDynamic(circuit.elements);
+    this.dynamic = isDynamic(circuit.elements) || !!circuit.dynamic;
     this.failed = false;
     this.dirty = true;
     if (this.dynamic) {

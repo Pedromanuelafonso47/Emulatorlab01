@@ -135,6 +135,43 @@ export function labDefsContent(): ReactNode {
       <filter id="f-shadow" x="-20%" y="-20%" width="140%" height="140%">
         <feDropShadow dx="0.8" dy="1.4" stdDeviation="1.1" floodColor="#000" floodOpacity="0.35" />
       </filter>
+      {/* Cylindrical shading: dark rim, specular band, soft falloff (overlay on any cylinder). */}
+      <linearGradient id="g-cyl-h" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stopColor="#000" stopOpacity="0.6" /><stop offset="0.14" stopColor="#000" stopOpacity="0.28" />
+        <stop offset="0.3" stopColor="#fff" stopOpacity="0.42" /><stop offset="0.44" stopColor="#fff" stopOpacity="0.06" />
+        <stop offset="0.72" stopColor="#000" stopOpacity="0.1" /><stop offset="0.9" stopColor="#000" stopOpacity="0.36" />
+        <stop offset="1" stopColor="#000" stopOpacity="0.62" />
+      </linearGradient>
+      {/* Crimped aluminium / metal end cap. */}
+      <linearGradient id="g-metal-cap" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stopColor="#4d545d" /><stop offset="0.25" stopColor="#e9edf1" /><stop offset="0.45" stopColor="#a4acb6" />
+        <stop offset="0.7" stopColor="#dfe4e9" /><stop offset="1" stopColor="#4a5159" />
+      </linearGradient>
+      {/* Epoxy-coated disc: glossy dome. */}
+      <radialGradient id="g-epoxy-dome" cx="0.36" cy="0.3" r="0.75">
+        <stop offset="0" stopColor="#ffffff" stopOpacity="0.55" /><stop offset="0.22" stopColor="#ffffff" stopOpacity="0.08" />
+        <stop offset="0.8" stopColor="#000" stopOpacity="0.18" /><stop offset="1" stopColor="#000" stopOpacity="0.5" />
+      </radialGradient>
+      {/* Ferrite core (toroid / EI): dark glossy ring. */}
+      <radialGradient id="g-ferrite" cx="0.4" cy="0.35" r="0.75">
+        <stop offset="0" stopColor="#5a6070" /><stop offset="0.6" stopColor="#23262e" /><stop offset="1" stopColor="#0b0c10" />
+      </radialGradient>
+      {/* Lacquered enamelled copper winding. */}
+      <linearGradient id="g-wire-cu" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stopColor="#6e2f0e" /><stop offset="0.35" stopColor="#f6b071" /><stop offset="0.55" stopColor="#c8692c" /><stop offset="1" stopColor="#5a2509" />
+      </linearGradient>
+      {/* Glass tube (fuses, LDR cover). */}
+      <linearGradient id="g-glass-tube" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#ffffff" stopOpacity="0.9" /><stop offset="0.25" stopColor="#e7f2f8" stopOpacity="0.35" />
+        <stop offset="0.6" stopColor="#c9dde9" stopOpacity="0.25" /><stop offset="1" stopColor="#8fa9ba" stopOpacity="0.6" />
+      </linearGradient>
+      {/* Printed-ink / moulded-plastic surface grain (speckles only where the shape is). */}
+      <filter id="f-texture" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="4" result="n" />
+        <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.1 0.8" result="dots" />
+        <feComposite in="dots" in2="SourceAlpha" operator="in" result="clipped" />
+        <feMerge><feMergeNode in="SourceGraphic" /><feMergeNode in="clipped" /></feMerge>
+      </filter>
       <filter id="f-soft" x="-10%" y="-10%" width="120%" height="120%">
         <feGaussianBlur stdDeviation="0.25" />
       </filter>

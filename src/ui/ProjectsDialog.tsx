@@ -5,6 +5,7 @@ import { deleteProject, listProjects, saveProject } from '@/persistence/projects
 import { EXAMPLES } from '@/persistence/examples';
 import { canvasSize } from '@/editor/Canvas';
 import { uid } from '@/domain/types';
+import { CloudSection } from './CloudSection';
 
 export function ProjectsDialog({ onClose }: { onClose: () => void }) {
   const [projects, setProjects] = useState(listProjects());
@@ -38,7 +39,8 @@ export function ProjectsDialog({ onClose }: { onClose: () => void }) {
           </div>
           <div className="p-4">
             <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-lab-400">Os meus projetos (guardados neste navegador)</div>
-            {projects.length === 0 && <div className="rounded-lg border border-dashed border-lab-600 p-4 text-[12.5px] text-lab-400">Ainda não guardou nenhum projeto. Use <b>Guardar</b> (Ctrl+S). O armazenamento na nuvem e a partilha por link chegam na Fase 7.</div>}
+            {projects.length === 0 && <div className="rounded-lg border border-dashed border-lab-600 p-4 text-[12.5px] text-lab-400">Ainda não guardou nenhum projeto. Use <b>Guardar</b> (Ctrl+S). Com a conta na nuvem (abaixo) pode também guardar e partilhar projetos.</div>}
+            <div className="mb-4"><CloudSection onOpened={onClose} /></div>
             <div className="space-y-1.5">
               {projects.map((p) => (
                 <div key={p.id} className="group flex items-center gap-2 rounded-lg border border-lab-700 bg-lab-850 px-3 py-2 hover:border-lab-500">

@@ -78,6 +78,8 @@ export interface SimCircuit {
   nodeCount: number;          // including ground (index 0)
   nodeNets: string[];         // node index → net id
   elements: Element[];
+  /** Set when a time-driven runtime (microcontroller sketches) must step the circuit even if it has no dynamic parts. */
+  dynamic?: boolean;
 }
 
 export interface SimResult {

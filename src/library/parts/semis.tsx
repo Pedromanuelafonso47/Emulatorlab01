@@ -11,16 +11,21 @@ const diodePins: PinDef[] = [
   { id: 'K', name: 'Cátodo (K)', x: 20, y: 0, role: 'passive', polarity: '-' },
 ];
 
+/** Axial diode: moulded (or glass) body, cathode band with a glossy stripe, tinned leads. */
 function AxialDiode({ body, band, glass, label }: { body: string; band: string; glass?: boolean; label: string }) {
   return (
     <g>
-      <Lead x1={-20} y1={0} x2={-9} y2={0} /><Lead x1={9} y1={0} x2={20} y2={0} />
-      <rect x={-10} y={-3.6} width={20} height={7.2} rx={1.6} fill={body} stroke="#000" strokeWidth={0.3} />
-      {glass && <line x1={-9} y1={0} x2={9} y2={0} stroke="#b9c0c8" strokeWidth={1} />}
-      {glass && <rect x={-3} y={-1.4} width={4} height={2.8} fill="#3c3f44" />}
+      <ellipse cx={0} cy={5.5} rx={13} ry={1.2} fill="#000" opacity={0.2} filter="url(#f-soft)" />
+      <Lead x1={-20} y1={0} x2={-9} y2={0} w={1.1} /><Lead x1={9} y1={0} x2={20} y2={0} w={1.1} />
+      <rect x={-10} y={-3.6} width={20} height={7.2} rx={glass ? 3.4 : 1.8} fill={body} stroke="#000" strokeWidth={0.3} filter={glass ? undefined : 'url(#f-texture)'} />
+      {glass && <rect x={-6.5} y={-1.2} width={3.6} height={2.4} fill="#2d2f33" />}
+      {glass && <rect x={-6.5} y={-1.2} width={3.6} height={2.4} fill="#fff" opacity={0.15} />}
       <rect x={5.2} y={-3.6} width={2.6} height={7.2} fill={band} />
-      <rect x={-10} y={-3.6} width={20} height={7.2} rx={1.6} fill="url(#g-cyl-shade)" />
-      {!glass && <Txt x={-1.5} y={0} size={2.1} fill="#9aa0a8">{label}</Txt>}
+      <rect x={5.2} y={-3.6} width={0.8} height={7.2} fill="#fff" opacity={0.3} />
+      <rect x={-10} y={-3.6} width={20} height={7.2} rx={glass ? 3.4 : 1.8} fill="url(#g-cyl-h)" />
+      {/* end caps for the leads */}
+      {[-10.6, 8.6].map((x) => <rect key={x} x={x} y={-2.6} width={2} height={5.2} rx={0.5} fill="url(#g-metal-cap)" stroke="#50585f" strokeWidth={0.2} />)}
+      {!glass && <Txt x={-1.5} y={0.3} size={2.1} fill="#e1e4e8">{label}</Txt>}
     </g>
   );
 }
@@ -100,15 +105,25 @@ registerComponent({
     const b = Math.max(0, Math.min(1, state?.brightness ?? 0));
     return (
       <g>
-        <LeadPath d="M2 3 L2 10 L-1.5 15 L0 18 L0 30" />
-        <LeadPath d="M8 3 L8 12 L10 16 L10 30" />
-        {b > 0 && <circle cx={5} cy={-8} r={10 + 22 * b} fill={`url(#g-glow-${c})`} opacity={0.4 + 0.6 * b} />}
+        {/* lead frame: anode (long, bent) and cathode (short, with the reflector cup) */}
+        <LeadPath d="M2 3 L2 10 L-1.5 15 L0 18 L0 30" w={0.9} />
+        <LeadPath d="M8 3 L8 12 L10 16 L10 30" w={0.9} />
+        {b > 0 && <circle cx={5} cy={-8} r={12 + 24 * b} fill={`url(#g-glow-${c})`} opacity={0.4 + 0.6 * b} />}
+        {/* epoxy dome: colour, cylindrical rounding and a clear-resin highlight */}
         <path d="M-5 0.5 L-5 -12 A10 10 0 0 1 15 -12 L15 0.5 Z" fill={`url(#g-led-${c})`} stroke="#000" strokeOpacity={0.25} strokeWidth={0.4} />
-        <path d="M0.5 0.5 L0.5 -5 L3 -5 L3 0.5 Z" fill="#9aa0a8" opacity={0.75} />
-        <path d="M6.5 0.5 L6.5 -7 L11 -9 L11 -5 L9 -5 L9 0.5 Z" fill="#7d838b" opacity={0.75} />
-        <path d="M-6.5 0.5 L16.5 0.5 L16.5 3.5 L14.5 3.5 L14.5 2.6 L-6.5 3.5 Z" fill={`url(#g-led-${c})`} stroke="#000" strokeOpacity={0.3} strokeWidth={0.3} />
-        <path d="M-3 -12 A8 8 0 0 1 3 -18.5" fill="none" stroke="#fff" strokeOpacity={0.55} strokeWidth={1.4} strokeLinecap="round" />
-        {b > 0 && <path d="M-5 0.5 L-5 -12 A10 10 0 0 1 15 -12 L15 0.5 Z" fill={LED_COLORS[c].light} opacity={0.55 * b} />}
+        <path d="M-5 0.5 L-5 -12 A10 10 0 0 1 15 -12 L15 0.5 Z" fill="url(#g-cyl-h)" opacity={0.55} />
+        {/* internal reflector cup and the LED die */}
+        <path d="M-1.6 0.5 L-0.4 -4.6 L5.8 -4.6 L6.8 0.5 Z" fill="url(#g-metal-cap)" opacity={0.85} />
+        <rect x={1.6} y={-2.6} width={2.6} height={2} fill="#22252a" />
+        <rect x={1.6} y={-2.6} width={2.6} height={0.7} fill="#fff" opacity={0.35} />
+        {/* flange (the flat base) */}
+        <path d="M-6.5 0.6 L16.5 0.6 L16.5 2.6 Q16.5 3.4 15.5 3.4 L-5.5 3.4 Q-6.5 3.4 -6.5 2.6 Z" fill={`url(#g-led-${c})`} stroke="#000" strokeOpacity={0.3} strokeWidth={0.3} />
+        {/* specular curve on the dome */}
+        <path d="M-3.6 -10 A8 8 0 0 1 1.5 -17.4" fill="none" stroke="#fff" strokeOpacity={0.75} strokeWidth={1.2} strokeLinecap="round" />
+        <path d="M-2.8 -4 A8 8 0 0 0 -4.2 -9" fill="none" stroke="#fff" strokeOpacity={0.25} strokeWidth={0.6} strokeLinecap="round" />
+        {/* flat side marks the cathode */}
+        <rect x={-5.4} y={-1.6} width={0.9} height={2.2} fill="#000" opacity={0.25} />
+        {b > 0 && <path d="M-5 0.5 L-5 -12 A10 10 0 0 1 15 -12 L15 0.5 Z" fill={LED_COLORS[c].light} opacity={0.5 * b} />}
       </g>
     );
   },
@@ -213,10 +228,19 @@ registerComponent({
   valueLabel: (p) => String(p.model),
   render: ({ props }) => (
     <g>
-      {[-10, 0, 10, 20].map((x) => <Lead key={x} x1={x} y1={6} x2={x} y2={20} w={1.6} />)}
-      <rect x={-15} y={-25} width={40} height={32} rx={2} fill="url(#g-black-flat)" stroke="#000" strokeWidth={0.5} />
-      <path d="M-15 -21 L-11 -25" stroke="#555" strokeWidth={0.8} />
-      <Txt x={5} y={-14} size={4} fill="#d4d8dd">{String(props.model)}</Txt>
+      <ellipse cx={3} cy={21} rx={24} ry={1.5} fill="#000" opacity={0.2} filter="url(#f-soft)" />
+      {[-10, 0, 10, 20].map((x) => (
+        <g key={x}>
+          <Lead x1={x} y1={6} x2={x} y2={20} w={1.5} />
+          <rect x={x - 1.6} y={3} width={3.2} height={4} fill="url(#g-metal-h)" stroke="#6f7782" strokeWidth={0.2} />
+        </g>
+      ))}
+      {/* moulded body: grain, rounding, chamfered corner marking the + lead */}
+      <path d="M-15 -25 L-11 -25 L25 -25 L25 7 L-15 7 Z" fill="url(#g-black-flat)" stroke="#000" strokeWidth={0.5} filter="url(#f-texture)" />
+      <path d="M-15 -25 L-15 7 L25 7 L25 -25 Z" fill="url(#g-cyl-h)" opacity={0.3} />
+      <path d="M-15 -21 L-11 -25" stroke="#8a9199" strokeWidth={0.9} />
+      <path d="M-14.6 -21 L-11 -24.6" stroke="#ffffff" strokeOpacity={0.25} strokeWidth={0.4} />
+      <Txt x={5} y={-14} size={4} fill="#e4e7eb">{String(props.model)}</Txt>
       {['+', '~', '~', '−'].map((s, i) => <Txt key={i} x={-10 + i * 10} y={1} size={4} fill="#c9cdd2">{s}</Txt>)}
     </g>
   ),

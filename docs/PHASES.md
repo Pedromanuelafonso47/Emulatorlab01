@@ -1,5 +1,19 @@
 # ElectroLab — Plano de fases e estado
 
+## Estado atual (resumo honesto)
+
+| Fase | Estado | O que falta |
+|---|---|---|
+| 1 Interface e biblioteca | ✅ | — |
+| 2 Modelo DC | ✅ | — |
+| 3 Instrumentos | ✅ | — |
+| 4 Transitório e AC | ✅ | — (modelos de cada componente estão em `engine/sim/models.ts`; a biblioteca lê o estado deles) |
+| 5 Microcontroladores | 🟡 parcial | **Uno e Nano executam o programa compilado no emulador ATmega328P** (avr8js), com o `arduino-cli` (serviço local `tools/compile-server.mjs`, `npm run compile-service`). Se o serviço não estiver a correr ou a sketch precisar de uma biblioteca que o compilador não tem (ex.: DHT), a placa corre no interpretador próprio. **Mega, ESP32, ESP8266 e Pico:** Mega e ESP32 com interpretador; Pico (rp2040js) e ESP8266 sem execução. Sem PWM/temporização de hardware no interpretador. |
+| 6 Aprender | 🟡 parcial | 9 aulas em 4 níveis, passos validados contra o netlist; os pinos citados são verificados contra a biblioteca. Falta mais conteúdo. |
+| 7 Plataforma | 🟡 código pronto, não verificado | Cliente Supabase (`src/cloud/supabase.ts`), esquema com RLS (`supabase/schema.sql`) e secção Nuvem. Testado só contra servidor simulado. Falta um projeto Supabase real e as suas credenciais. |
+
+Padrões de qualidade usados: os testes da suíte (`npm test`) cobrem o simulador, o interpretador, o host, as aulas e o cliente da nuvem; a folha de peças (`src/library/render/sheet.test.ts`) é uma ferramenta de revisão visual, ativada por variáveis de ambiente.
+
 ## Fase 1 — Interface, área de trabalho, biblioteca, ligações ✅ (implementada)
 
 **Implementado e testado**

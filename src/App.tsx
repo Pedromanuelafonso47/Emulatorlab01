@@ -49,7 +49,7 @@ export default function App() {
   const rightOpen = useEditor((s) => s.rightOpen);
   const bottomOpen = useEditor((s) => s.bottomOpen);
   const set = useEditor((s) => s.set);
-  const [bottomH, setBottomH] = useState(190);
+  const [bottomH, setBottomH] = useState(280);
   const drag = useRef<{ y: number; h: number } | null>(null);
 
   useEffect(() => {

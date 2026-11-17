@@ -9,9 +9,11 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --noEmit",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "compile-service": "node tools/compile-server.mjs"
   },
   "dependencies": {
+    "avr8js": "0.21.1",
     "immer": "^10.1.1",
     "lucide-react": "^0.453.0",
     "react": "^18.3.1",

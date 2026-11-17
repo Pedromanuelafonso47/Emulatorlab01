@@ -41,6 +41,82 @@ function PinLabels({ pins, side, size = 3, color = '#f1f5f9' }: { pins: PinDef[]
   );
 }
 
+/** Contact shadow under a board. */
+const boardShadow = (x: number, y: number, w: number, h: number) => (
+  <rect x={x + 3} y={y + 4} width={w} height={h} rx={4} fill="#000" opacity={0.22} filter="url(#f-soft)" />
+);
+
+/** Board surface: solder-mask colour, a soft gloss and a thin bevelled edge. */
+function BoardSurface({ d, fill }: { d: string; fill: string }) {
+  return (
+    <g>
+      <path d={d} fill={fill} stroke="#031a20" strokeWidth={0.8} />
+      <path d={d} fill="url(#g-cyl-h)" opacity={0.1} />
+      <path d={d} fill="none" stroke="#fff" strokeOpacity={0.18} strokeWidth={0.6} />
+    </g>
+  );
+}
+
+/** USB-B receptacle: metal shell, black insulator with the four contacts. */
+function UsbB({ x, y, w = 48, h = 46 }: { x: number; y: number; w?: number; h?: number }) {
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} rx={1.5} fill="url(#g-metal)" stroke="#5f6670" strokeWidth={0.6} />
+      <rect x={x + 4} y={y + 10} width={w - 18} height={h - 20} rx={1} fill="#1c1e22" stroke="#000" strokeWidth={0.4} />
+      <rect x={x + 6} y={y + 12} width={w - 22} height={h - 24} rx={1} fill="#2a2d33" />
+      {[0, 1, 2, 3].map((i) => <rect key={i} x={x + 8 + i * 6} y={y + h / 2 - 1.5} width={2.2} height={3} fill="#c8a24a" />)}
+      <rect x={x} y={y} width={w} height={h} rx={1.5} fill="url(#g-cyl-h)" opacity={0.35} />
+    </g>
+  );
+}
+
+/** Barrel jack: black moulded body with a metal centre contact. */
+function BarrelJack({ x, y, w = 56, h = 36 }: { x: number; y: number; w?: number; h?: number }) {
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} rx={2} fill="url(#g-black-flat)" stroke="#000" strokeWidth={0.5} filter="url(#f-texture)" />
+      <rect x={x} y={y} width={w} height={h} rx={2} fill="url(#g-cyl-h)" opacity={0.3} />
+      <circle cx={x + 14} cy={y + h / 2} r={8} fill="#0b0c0e" />
+      <circle cx={x + 14} cy={y + h / 2} r={2.6} fill="url(#g-metal-r)" />
+    </g>
+  );
+}
+
+/** Tact switch with a red cap. */
+function ResetButton({ x, y }: { x: number; y: number }) {
+  return (
+    <g>
+      <rect x={x} y={y} width={18} height={18} rx={1} fill="url(#g-metal)" stroke="#5f6670" strokeWidth={0.4} />
+      <circle cx={x + 9} cy={y + 9} r={5.5} fill="url(#g-red-plastic)" stroke="#7d1612" strokeWidth={0.5} />
+      <circle cx={x + 7.5} cy={y + 7.5} r={1.6} fill="#fff" opacity={0.4} />
+    </g>
+  );
+}
+
+/** Crystal oscillator: metal can with a printed frequency. */
+function Crystal({ x, y, w = 22, label = '16.000' }: { x: number; y: number; w?: number; label?: string }) {
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={9} rx={4} fill="url(#g-metal)" stroke="#6f7782" strokeWidth={0.4} />
+      <rect x={x} y={y} width={w} height={9} rx={4} fill="url(#g-cyl-h)" opacity={0.4} />
+      <Txt x={x + w / 2} y={y + 6} size={2.4} fill="#2d333b">{label}</Txt>
+    </g>
+  );
+}
+
+/** Surface-mount ATmega-style package on the board with pin-1 notch and gull-wing leads. */
+function SmdIc({ x, y, w, h, label, sub }: { x: number; y: number; w: number; h: number; label: string; sub?: string }) {
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} rx={1.2} fill="url(#g-black-flat)" stroke="#000" strokeWidth={0.5} filter="url(#f-texture)" />
+      <rect x={x} y={y} width={w} height={h} rx={1.2} fill="url(#g-cyl-h)" opacity={0.25} />
+      <circle cx={x + 3} cy={y + 3} r={1} fill="#4a4f57" />
+      <Txt x={x + w / 2} y={y + h / 2 + 1} size={Math.min(3.6, w / (label.length * 0.9))} fill="#d9dde3">{label}</Txt>
+      {sub && <Txt x={x + w / 2} y={y + h / 2 + 5} size={2.2} fill="#8d939b">{sub}</Txt>}
+    </g>
+  );
+}
+
 // ═════════════════════ Arduino Uno ═════════════════════
 {
   const top = [...row(['SCL', 'SDA', 'AREF', 'GND', 'D13', 'D12', 'D11', 'D10', 'D9', 'D8'], -50, -90), ...row(['D7', 'D6', 'D5', 'D4', 'D3', 'D2', 'D1', 'D0'], 60, -90)];
@@ -53,6 +129,7 @@ function PinLabels({ pins, side, size = 3, color = '#f1f5f9' }: { pins: PinDef[]
   });
   const { pins, internal } = boardPins([...top, ...bottom]);
   const topPins = pins.filter((p) => p.y < 0), botPins = pins.filter((p) => p.y > 0);
+  const BOARD = 'M-128 -100 H128 L134 -94 V-60 L140 -54 V80 L134 86 V104 L128 110 H-128 Q-130 110 -130 108 V-98 Q-130 -100 -128 -100 Z';
   registerComponent({
     type: 'arduino-uno', name: 'Arduino Uno R3', category: 'mcu', subcategory: 'Placas Arduino', prefix: 'U',
     description: 'Placa com ATmega328P a 16 MHz: 14 E/S digitais (6 PWM), 6 entradas analógicas, USB.',
@@ -61,40 +138,39 @@ function PinLabels({ pins, side, size = 3, color = '#f1f5f9' }: { pins: PinDef[]
     pins, internalConnections: internal, props: USB_PROP,
     render: ({ state }) => (
       <g>
-        <path d="M-128 -100 H128 L134 -94 V-60 L140 -54 V80 L134 86 V104 L128 110 H-128 Q-130 110 -130 108 V-98 Q-130 -100 -128 -100 Z" fill="url(#g-pcb-teal)" stroke="#063c44" strokeWidth={0.8} />
-        <MountHole x={-115} y={95} r={6} /><MountHole x={-110} y={-90 + 4} r={6} /><MountHole x={130} y={-10} r={6} /><MountHole x={130} y={70} r={6} />
-        {/* USB-B */}
-        <rect x={-138} y={-68} width={48} height={46} rx={1.5} fill="url(#g-metal)" stroke="#5f6670" strokeWidth={0.6} />
-        <rect x={-134} y={-58} width={30} height={26} rx={1} fill="#c3c9d0" stroke="#7d858f" strokeWidth={0.4} />
-        {/* DC jack */}
-        <rect x={-136} y={28} width={56} height={36} rx={2} fill="url(#g-black-flat)" stroke="#000" strokeWidth={0.5} />
-        <circle cx={-122} cy={46} r={8} fill="#0b0c0e" /><circle cx={-122} cy={46} r={2.6} fill="url(#g-metal-r)" />
-        {/* reset button */}
-        <rect x={-110} y={-96} width={18} height={18} rx={1} fill="url(#g-metal)" /><circle cx={-101} cy={-87} r={5.5} fill="#c8302a" stroke="#7d1612" strokeWidth={0.5} />
-        {/* ATmega328P */}
-        <rect x={-6} y={46} width={132} height={34} rx={1.5} fill="url(#g-black-flat)" stroke="#000" strokeWidth={0.5} />
-        {Array.from({ length: 14 }, (_, i) => <g key={i}><rect x={-1 + i * 9.4} y={42} width={3.4} height={4} fill="#c7ccd1" /><rect x={-1 + i * 9.4} y={80} width={3.4} height={4} fill="#c7ccd1" /></g>)}
+        {boardShadow(-130, -100, 270, 212)}
+        <BoardSurface d={BOARD} fill="url(#g-pcb-blue)" />
+        {/* silkscreen outline of the power and header zones */}
+        <path d="M-124 -96 H124 M-124 104 H124" stroke="#fff" strokeOpacity={0.12} strokeWidth={0.4} fill="none" />
+        <MountHole x={-115} y={95} r={6} /><MountHole x={-110} y={-86} r={6} /><MountHole x={130} y={-10} r={6} /><MountHole x={130} y={70} r={6} />
+        <UsbB x={-138} y={-68} />
+        <BarrelJack x={-136} y={28} />
+        <ResetButton x={-110} y={-96} />
+        {/* ATmega328P (TQFP-style DIP package on the board) */}
+        <rect x={-6} y={46} width={132} height={34} rx={1.5} fill="url(#g-black-flat)" stroke="#000" strokeWidth={0.5} filter="url(#f-texture)" />
+        <rect x={-6} y={46} width={132} height={34} rx={1.5} fill="url(#g-cyl-h)" opacity={0.25} />
+        {Array.from({ length: 14 }, (_, i) => <g key={i}><rect x={-1 + i * 9.4} y={42} width={3.4} height={4} fill="url(#g-metal-h)" /><rect x={-1 + i * 9.4} y={80} width={3.4} height={4} fill="url(#g-metal-h)" /></g>)}
         <path d="M-6 59 A4 4 0 0 1 -6 67" fill="#000" stroke="#333" strokeWidth={0.4} />
-        <Txt x={60} y={60} size={5} fill="#cfd3d8">ATMEGA328P-PU</Txt>
-        {/* 16U2 + crystal + regulators */}
-        <rect x={-80} y={-60} width={22} height={22} fill="url(#g-black-flat)" transform="rotate(45 -69 -49)" />
-        <rect x={-46} y={-8} width={22} height={9} rx={4} fill="url(#g-metal)" stroke="#6f7782" strokeWidth={0.4} /><Txt x={-35} y={-3.5} size={2.4} fill="#333">16.000</Txt>
-        <rect x={-74} y={70} width={20} height={14} fill="url(#g-black-flat)" /><rect x={-72} y={64} width={16} height={6} fill="url(#g-metal)" />
+        <Txt x={60} y={60} size={5} fill="#d9dde3">ATMEGA328P-PU</Txt>
+        {/* USB interface chip, crystal, regulator */}
+        <SmdIc x={-80} y={-60} w={20} h={20} label="16U2" />
+        <Crystal x={-46} y={-8} />
+        <SmdIc x={-74} y={64} w={18} h={12} label="LM1117" />
         <circle cx={-40} cy={42} r={8} fill="url(#g-metal-r)" stroke="#5f6670" strokeWidth={0.5} /><circle cx={-58} cy={42} r={8} fill="url(#g-metal-r)" stroke="#5f6670" strokeWidth={0.5} />
-        {/* ICSP */}
+        {/* ICSP header */}
         {[0, 1, 2].map((i) => [0, 1].map((j) => <HeaderPin key={`${i}${j}`} x={124 + j * 10 - 5} y={10 + i * 10} />))}
-        {/* LEDs */}
+        {/* LEDs: L (pin 13), TX, RX, power */}
         <SmdLed x={-22} y={-68} color="#ffb000" on={Boolean(state?.led13)} /><Txt x={-14} y={-68} size={3} fill="#fff">L</Txt>
         <SmdLed x={-22} y={-58} color="#ffb000" /><Txt x={-13} y={-58} size={3} fill="#fff">TX</Txt>
         <SmdLed x={-22} y={-48} color="#ffb000" /><Txt x={-13} y={-48} size={3} fill="#fff">RX</Txt>
         <SmdLed x={92} y={-38} color="#33dd55" on /><Txt x={102} y={-38} size={3} fill="#fff">ON</Txt>
         <Smd x={10} y={-40} /><Smd x={20} y={-40} /><Smd x={30} y={-32} w={5} h={2.4} color="#c9a43a" />
-        {/* Branding-free silkscreen */}
+        {/* silkscreen title and specs */}
         <Txt x={46} y={-14} size={20} fill="#ffffff" weight={800} family="sans">UNO</Txt>
-        <Txt x={46} y={5} size={4} fill="#d9f4f6">R3 · ATmega328P · 16 MHz</Txt>
-        <Txt x={10} y={-56} size={3.4} fill="#e6fbff">DIGITAL (PWM ~)</Txt>
-        <Txt x={5} y={86} size={3.4} fill="#e6fbff">POWER</Txt><Txt x={85} y={86} size={3.4} fill="#e6fbff">ANALOG IN</Txt>
-        {/* Headers */}
+        <Txt x={46} y={5} size={4} fill="#dbe9ff">R3 · ATmega328P · 16 MHz</Txt>
+        <Txt x={10} y={-56} size={3.4} fill="#eef5ff">DIGITAL (PWM ~)</Txt>
+        <Txt x={5} y={86} size={3.4} fill="#eef5ff">POWER</Txt><Txt x={85} y={86} size={3.4} fill="#eef5ff">ANALOG IN</Txt>
+        {/* headers: black plastic with gold-plated sockets */}
         {pins.map((p) => <HeaderSocket key={p.id} x={p.x} y={p.y} />)}
         <PinLabels pins={topPins.map((p) => ({ ...p, name: PWM_UNO.has(p.name) ? `~${p.name.slice(1)}` : p.name.replace(/^D/, '') }))} side="below" size={3.2} />
         <PinLabels pins={botPins} side="above" size={3.2} />
@@ -130,6 +206,7 @@ function PinLabels({ pins, side, size = 3, color = '#f1f5f9' }: { pins: PinDef[]
     dbl.push({ name: `D${n}`, x: 170, y }, { name: `D${n + 1}`, x: 180, y });
   }
   const { pins, internal } = boardPins([...top, ...bottom, ...dbl]);
+  const BOARD = 'M-198 -100 H186 L192 -94 V104 L186 110 H-198 Q-200 110 -200 108 V-98 Q-200 -100 -198 -100 Z';
   registerComponent({
     type: 'arduino-mega', name: 'Arduino Mega 2560', category: 'mcu', subcategory: 'Placas Arduino', prefix: 'U',
     description: 'ATmega2560: 54 E/S digitais (15 PWM), 16 entradas analógicas, 4 portas série.',
@@ -138,17 +215,18 @@ function PinLabels({ pins, side, size = 3, color = '#f1f5f9' }: { pins: PinDef[]
     pins, internalConnections: internal, props: USB_PROP,
     render: () => (
       <g>
-        <path d="M-198 -100 H186 L192 -94 V104 L186 110 H-198 Q-200 110 -200 108 V-98 Q-200 -100 -198 -100 Z" fill="url(#g-pcb-teal)" stroke="#063c44" strokeWidth={0.8} />
+        {boardShadow(-200, -100, 392, 212)}
+        <BoardSurface d={BOARD} fill="url(#g-pcb-blue)" />
         <MountHole x={-185} y={95} r={6} /><MountHole x={-180} y={-86} r={6} /><MountHole x={150} y={-60} r={6} /><MountHole x={150} y={80} r={6} />
-        <rect x={-208} y={-68} width={48} height={46} rx={1.5} fill="url(#g-metal)" stroke="#5f6670" strokeWidth={0.6} />
-        <rect x={-206} y={28} width={56} height={36} rx={2} fill="url(#g-black-flat)" />
-        <circle cx={-192} cy={46} r={8} fill="#0b0c0e" />
-        <rect x={-10} y={-40} width={70} height={70} fill="url(#g-black-flat)" stroke="#000" strokeWidth={0.5} transform="rotate(45 25 -5)" />
-        <Txt x={25} y={-8} size={4.6} fill="#cfd3d8">ATMEGA2560</Txt><Txt x={25} y={-1} size={3} fill="#8d939b">16AU</Txt>
+        <UsbB x={-208} y={-68} />
+        <BarrelJack x={-206} y={28} />
+        {/* ATmega2560 in TQFP package, shown diagonally */}
+        <rect x={-10} y={-40} width={70} height={70} fill="url(#g-black-flat)" stroke="#000" strokeWidth={0.5} transform="rotate(45 25 -5)" filter="url(#f-texture)" />
+        <Txt x={25} y={-8} size={4.6} fill="#d9dde3">ATMEGA2560</Txt><Txt x={25} y={-1} size={3} fill="#8d939b">16AU</Txt>
         <Txt x={-100} y={-20} size={20} fill="#fff" weight={800} family="sans">MEGA</Txt>
-        <Txt x={-100} y={0} size={4} fill="#d9f4f6">2560 · 16 MHz</Txt>
-        <Txt x={-60} y={-60} size={3.4} fill="#e6fbff">DIGITAL (PWM ~)</Txt><Txt x={115} y={-60} size={3.4} fill="#e6fbff">COMMUNICATION</Txt>
-        <Txt x={-65} y={86} size={3.4} fill="#e6fbff">POWER</Txt><Txt x={70} y={86} size={3.4} fill="#e6fbff">ANALOG IN</Txt>
+        <Txt x={-100} y={0} size={4} fill="#dbe9ff">2560 · 16 MHz</Txt>
+        <Txt x={-60} y={-60} size={3.4} fill="#eef5ff">DIGITAL (PWM ~)</Txt><Txt x={115} y={-60} size={3.4} fill="#eef5ff">COMMUNICATION</Txt>
+        <Txt x={-65} y={86} size={3.4} fill="#eef5ff">POWER</Txt><Txt x={70} y={86} size={3.4} fill="#eef5ff">ANALOG IN</Txt>
         {pins.map((p) => <HeaderSocket key={p.id} x={p.x} y={p.y} />)}
         <PinLabels pins={pins.filter((p) => p.y === -90).map((p) => ({ ...p, name: p.name.replace(/^D/, '') }))} side="below" size={3} />
         <PinLabels pins={pins.filter((p) => p.y === 100)} side="above" size={3} />
@@ -179,9 +257,13 @@ function dualRow(d: DualRow) {
     pins, internalConnections: internal, props: USB_PROP,
     render: () => (
       <g>
+        {boardShadow(bx, by, d.w, d.h)}
         <rect x={bx} y={by} width={d.w} height={d.h} rx={3} fill={`url(#g-pcb-${d.pcb})`} stroke="#0008" strokeWidth={0.6} />
+        <rect x={bx} y={by} width={d.w} height={d.h} rx={3} fill="url(#g-cyl-h)" opacity={0.1} />
         {d.deco(bx, by)}
-        <rect x={d.usbSide === 'left' ? bx - 8 : bx + d.w - 22} y={by + d.h / 2 - 12} width={30} height={24} rx={2} fill="url(#g-metal)" stroke="#5f6670" strokeWidth={0.5} />
+        {d.usbSide === 'left'
+          ? <UsbB x={bx - 8} y={by + d.h / 2 - 12} w={30} h={24} />
+          : <UsbB x={bx + d.w - 22} y={by + d.h / 2 - 12} w={30} h={24} />}
         {pins.map((p) => <HeaderPin key={p.id} x={p.x} y={p.y} />)}
         <PinLabels pins={pins.filter((p) => p.y === d.yTop)} side="below" size={2.6} />
         <PinLabels pins={pins.filter((p) => p.y === d.yBot)} side="above" size={2.6} />
@@ -199,9 +281,8 @@ dualRow({
   top: ['D13', '3V3', 'REF', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', '5V', 'RST', 'GND', 'VIN'],
   bottom: ['D12', 'D11', 'D10', 'D9', 'D8', 'D7', 'D6', 'D5', 'D4', 'D3', 'D2', 'GND', 'RST', 'RX0', 'TX1'],
   deco: (bx, by) => (<g>
-    <rect x={bx + 70} y={by + 22} width={28} height={28} fill="url(#g-black-flat)" transform={`rotate(45 ${bx + 84} ${by + 36})`} />
-    <Txt x={bx + 84} y={by + 36} size={2.4} fill="#aaa">328P</Txt>
-    <rect x={bx + 120} y={by + 28} width={10} height={16} rx={1} fill="url(#g-metal)" /><circle cx={bx + 125} cy={by + 36} r={3} fill="#eee" />
+    <SmdIc x={bx + 66} y={by + 20} w={30} h={30} label="ATMEGA328P" sub="AU" />
+    <Crystal x={bx + 110} y={by + 26} w={14} label="16M" />
     <SmdLed x={bx + 44} y={by + 30} color="#33dd55" on /><SmdLed x={bx + 44} y={by + 42} color="#ffb000" />
     <Txt x={bx + 140} y={by + 52} size={4} fill="#fff" weight={800}>NANO</Txt>
   </g>),
@@ -215,13 +296,14 @@ dualRow({
   top: ['EN', 'VP', 'VN', 'D34', 'D35', 'D32', 'D33', 'D25', 'D26', 'D27', 'D14', 'D12', 'D13', 'GND', 'VIN'],
   bottom: ['D23', 'D22', 'TX0', 'RX0', 'D21', 'D19', 'D18', 'D5', 'TX2', 'RX2', 'D4', 'D2', 'D15', 'GND', '3V3'],
   deco: (bx, by) => (<g>
+    {/* RF shield can with the module's grid and the printed-antenna trace */}
     <rect x={bx + 2} y={by + 26} width={72} height={60} rx={1} fill="url(#g-metal)" stroke="#6f7782" strokeWidth={0.5} />
     <path d={`M${bx + 4} ${by + 30} h10 v10 h-6 v10 h6 v10 h-6 v10 h6`} fill="none" stroke="#c9a43a" strokeWidth={1.4} />
     <rect x={bx + 20} y={by + 34} width={50} height={44} rx={1} fill="url(#g-metal-h)" opacity={0.7} />
     <Txt x={bx + 45} y={by + 50} size={4} fill="#333" weight={800}>ESP32-WROOM</Txt><Txt x={bx + 45} y={by + 58} size={2.6} fill="#555">Wi-Fi + BT</Txt>
     <rect x={bx + 120} y={by + 44} width={12} height={10} fill="url(#g-black-flat)" /><rect x={bx + 140} y={by + 44} width={14} height={10} fill="url(#g-black-flat)" />
     <SmdLed x={bx + 110} y={by + 64} color="#ff3b30" on /><SmdLed x={bx + 120} y={by + 64} color="#3d8bff" />
-    <rect x={bx + 160} y={by + 28} width={8} height={8} rx={1} fill="#ddd" /><rect x={bx + 160} y={by + 76} width={8} height={8} rx={1} fill="#ddd" />
+    <rect x={bx + 160} y={by + 28} width={8} height={8} rx={1} fill="url(#g-metal-cap)" /><rect x={bx + 160} y={by + 76} width={8} height={8} rx={1} fill="url(#g-metal-cap)" />
     <Txt x={bx + 164} y={by + 41} size={2.2} fill="#ddd">EN</Txt><Txt x={bx + 164} y={by + 72} size={2.2} fill="#ddd">BOOT</Txt>
   </g>),
   specs: { CPU: 'Xtensa LX6 dual-core 240 MHz', Flash: '4 MB', SRAM: '520 KB', ADC: '12 bits (18 canais)', 'Lógica': '3,3 V' },
@@ -235,7 +317,8 @@ dualRow({
   top: ['A0', 'RSV', 'RSV', 'SD3', 'SD2', 'SD1', 'CMD', 'SD0', 'CLK', 'GND', '3V3', 'EN', 'RST', 'GND', 'VIN'],
   bottom: ['D0', 'D1', 'D2', 'D3', 'D4', '3V3', 'GND', 'D5', 'D6', 'D7', 'D8', 'RX', 'TX', 'GND', '3V3'],
   deco: (bx, by) => (<g>
-    <rect x={bx + 4} y={by + 28} width={64} height={56} rx={1} fill="#1a3a8a" stroke="#0d1f4a" strokeWidth={0.5} />
+    {/* ESP-12E module: shield with a gold antenna trace at the edge */}
+    <rect x={bx + 4} y={by + 28} width={64} height={56} rx={1} fill="url(#g-pcb-blue)" stroke="#0d1f4a" strokeWidth={0.5} />
     <path d={`M${bx + 6} ${by + 32} h10 v8 h-6 v8 h6 v8 h-6 v8 h6`} fill="none" stroke="#c9a43a" strokeWidth={1.4} />
     <rect x={bx + 22} y={by + 36} width={42} height={40} rx={1} fill="url(#g-metal-h)" opacity={0.8} />
     <Txt x={bx + 43} y={by + 52} size={3.6} fill="#333" weight={800}>ESP-12E</Txt>
@@ -252,10 +335,9 @@ dualRow({
   top: ['GP0', 'GP1', 'GND', 'GP2', 'GP3', 'GP4', 'GP5', 'GND', 'GP6', 'GP7', 'GP8', 'GP9', 'GND', 'GP10', 'GP11', 'GP12', 'GP13', 'GND', 'GP14', 'GP15'],
   bottom: ['VBUS', 'VSYS', 'GND', '3V3_EN', '3V3', 'ADC_VREF', 'GP28', 'AGND', 'GP27', 'GP26', 'RUN', 'GP22', 'GND', 'GP21', 'GP20', 'GP19', 'GP18', 'GND', 'GP17', 'GP16'],
   deco: (bx, by) => (<g>
-    <rect x={bx + 90} y={by + 26} width={30} height={30} fill="url(#g-black-flat)" stroke="#000" strokeWidth={0.4} />
-    <Txt x={bx + 105} y={by + 41} size={3.4} fill="#bbb">RP2040</Txt>
-    <rect x={bx + 130} y={by + 30} width={20} height={14} fill="url(#g-black-flat)" />
-    <rect x={bx + 30} y={by + 30} width={12} height={10} rx={1} fill="#eee" /><Txt x={bx + 36} y={by + 46} size={2.2} fill="#fff">BOOTSEL</Txt>
+    <SmdIc x={bx + 90} y={by + 26} w={30} h={30} label="RP2040" />
+    <rect x={bx + 130} y={by + 30} width={20} height={14} fill="url(#g-black-flat)" stroke="#000" strokeWidth={0.4} />
+    <rect x={bx + 30} y={by + 30} width={12} height={10} rx={1} fill="url(#g-metal-cap)" stroke="#50585f" strokeWidth={0.4} /><Txt x={bx + 36} y={by + 46} size={2.2} fill="#e4e9f0">BOOTSEL</Txt>
     <SmdLed x={bx + 20} y={by + 54} color="#33dd55" />
     <Txt x={bx + 170} y={by + 42} size={4.4} fill="#fff" weight={800}>Pico</Txt>
   </g>),
@@ -284,4 +366,3 @@ registerDip({
   tags: ['pic', 'pic16f628a', 'microchip'],
   pins: ['RA2/AN2', 'RA3/AN3', 'RA4/T0CKI', 'RA5/MCLR̅', { name: 'VSS', role: 'ground' }, 'RB0/INT', 'RB1/RX', 'RB2/TX', 'RB3/CCP1', 'RB4/PGM', 'RB5', 'RB6/PGC', 'RB7/PGD', { name: 'VDD', role: 'power' }, 'RA6/OSC2', 'RA7/OSC1', 'RA0/AN0', 'RA1/AN1'],
 });
-

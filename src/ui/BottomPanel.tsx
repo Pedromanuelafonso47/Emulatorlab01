@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { AlertCircle, AlertTriangle, Info, CheckCircle2, Terminal, Network, Gauge, Activity, ChevronDown, Trash2 } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Info, CheckCircle2, Terminal, Network, Gauge, Activity, ChevronDown, Trash2, Code2, MessageSquare, GraduationCap } from 'lucide-react';
+import { CodeTab, SerialTab } from './McuTabs';
+import { LearnTab } from './LearnTab';
 import { useEditor, type BottomTab } from '@/store/editor';
 import { useAnalysis } from '@/store/derived';
 import { getDef, getPins } from '@/library/registry';
@@ -33,6 +35,9 @@ export function BottomPanel() {
     { id: 'sim', label: 'Simulação', icon: <Activity className="h-3.5 w-3.5" /> },
     { id: 'scope', label: 'Osciloscópio', icon: <Activity className="h-3.5 w-3.5" /> },
     { id: 'analysis', label: 'Análise', icon: <Brain className="h-3.5 w-3.5" /> },
+    { id: 'code', label: 'Programa', icon: <Code2 className="h-3.5 w-3.5" /> },
+    { id: 'serial', label: 'Monitor série', icon: <MessageSquare className="h-3.5 w-3.5" /> },
+    { id: 'learn', label: 'Aprender', icon: <GraduationCap className="h-3.5 w-3.5" /> },
   ];
   return (
     <div className="flex h-full flex-col">
@@ -54,6 +59,9 @@ export function BottomPanel() {
         {tab === 'sim' && <SimTab />}
         {tab === 'analysis' && <AnalysisTab />}
         {tab === 'scope' && <ScopeTab />}
+        {tab === 'code' && <CodeTab />}
+        {tab === 'serial' && <SerialTab />}
+        {tab === 'learn' && <LearnTab />}
       </div>
     </div>
   );
